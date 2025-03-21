@@ -39,6 +39,20 @@ class DynamoDBUserTableStack(Stack):
             removal_policy=RemovalPolicy.DESTROY
         )
 
+        # Create items table
+        items_table = dynamodb.Table(
+            self, "ItemsTable",
+            partition_key=dynamodb.Attribute(name="id", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            import_source=dynamodb.ImportSourceSpecification(
+                bucket=csv_bucket,
+                input_format=dynamodb.InputFormat.csv(),
+                key_prefix="raw_items.csv"
+            ),
+            removal_policy=RemovalPolicy.DESTROY
+        )
+
         # Outputs
-        CfnOutput(self, "TableName", value=user_table.table_name)
+        CfnOutput(self, "UsersTableName", value=user_table.table_name)
+        CfnOutput(self, "ItemsTableName", value=items_table.table_name)
         CfnOutput(self, "BucketName", value=csv_bucket.bucket_name)
