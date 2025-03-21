@@ -221,6 +221,7 @@ class PersonalizeDataImportStack(Stack):
         CfnOutput(self, "DataBucketName", value=data_bucket.bucket_name)
         CfnOutput(self, "PersonalizeRoleArn", value=personalize_role.role_arn)
 
+    # TODO: Separate this function to a folder like /lambda
     def _get_lambda_code(self):
         return """
 import cfnresponse
