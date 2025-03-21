@@ -1,18 +1,14 @@
 from aws_cdk import (
     Stack,
-    aws_opensearchservice as opensearch,
     aws_opensearchserverless as opensearchserverless,
-    aws_secretsmanager as secretsmanager,
     aws_iam as iam,
     aws_s3 as s3,
     aws_s3_deployment as s3deploy,
     aws_lambda as lambda_,
-    aws_ec2 as ec2,
     RemovalPolicy,
     CustomResource,
     CfnOutput,
     Duration,
-    triggers
 )
 from aws_cdk.custom_resources import Provider
 from constructs import Construct
@@ -182,11 +178,14 @@ class OpenSearchServerlessStack(Stack):
         custom_resource.node.add_dependency(collection)
         custom_resource.node.add_dependency(data_access_policy)
 
+        self.opensearch_endpoint = collection.attr_collection_endpoint
+
         # Output the collection endpoint and bucket name
-        CfnOutput(self, "CollectionEndpoint", value=collection.attr_collection_endpoint)
+        CfnOutput(self, "CollectionEndpoint", value=self.opensearch_endpoint)
         CfnOutput(self, "DataBucketName", value=data_bucket.bucket_name)
         CfnOutput(self, "DashboardsURL", value=f"https://{collection.attr_dashboard_endpoint}/_dashboards/")
 
+    # TODO: Separate this function to a folder like /lambda
     def _get_lambda_code(self):
         return """
 import boto3
