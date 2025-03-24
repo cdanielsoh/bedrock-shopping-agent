@@ -95,7 +95,7 @@ class SearchAgentStack(Stack):
         )
 
         # Create Bedrock Agent
-        agent = bedrock.CfnAgent(
+        self.agent = bedrock.CfnAgent(
             self, "SearchAgent",
             agent_name="SearchAgent",
             agent_resource_role_arn=agent_role.role_arn,
@@ -134,6 +134,11 @@ class SearchAgentStack(Stack):
             ]
         )
 
+        self.agent_alias = bedrock.CfnAgentAlias(
+            self, "SearchAgentAlias",
+            agent_id=self.agent.attr_agent_id,
+            agent_alias_name="SearchAgentAlias",
+        )
 
     def _get_lambda_code(self):
         return """

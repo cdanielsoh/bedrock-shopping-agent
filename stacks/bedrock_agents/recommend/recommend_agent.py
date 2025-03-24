@@ -84,7 +84,7 @@ class RecommendAgentStack(Stack):
         )
 
         # Create Bedrock Agent
-        agent = bedrock.CfnAgent(
+        self.agent = bedrock.CfnAgent(
             self, "RecommendAgent",
             agent_name="RecommendAgent",
             agent_resource_role_arn=agent_role.role_arn,
@@ -143,6 +143,12 @@ class RecommendAgentStack(Stack):
                     action_group_state="ENABLED",
                 )
             ]
+        )
+
+        self.agent_alias = bedrock.CfnAgentAlias(
+            self, "RecommendAgentAlias",
+            agent_id=self.agent.attr_agent_id,
+            agent_alias_name="RecommendAgentAlias"
         )
 
 # TODO: Move lambda function to a separate file

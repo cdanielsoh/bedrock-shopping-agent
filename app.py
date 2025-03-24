@@ -10,6 +10,7 @@ from stacks.opensearch.opensearch_stack import OpenSearchServerlessStack
 from stacks.dynamodb.dynamodb_stack import DynamoDBUserTableStack
 from stacks.bedrock_agents.search.search_agent import SearchAgentStack
 from stacks.bedrock_agents.customers.customers_agent import CustomerAgentStack
+from stacks.bedrock_agents.shopping.shopping_agent import SupervisorAgentStack
 
 app = cdk.App()
 
@@ -22,8 +23,9 @@ opensearch = OpenSearchServerlessStack(app, "OpenSearchServerlessStack")
 dynamodb = DynamoDBUserTableStack(app, "DynamoDbStack")
 
 # Bedrock Agents
-customer_agent = CustomerAgentStack(app, "CustomerAgentStack", dynamodb.orders_table_name, dynamodb.usrs_table_name)
+customer_agent = CustomerAgentStack(app, "CustomerAgentStack", dynamodb.orders_table_name, dynamodb.user_table_name)
 recommend_agent = RecommendAgentStack(app, "RecommendAgentStack")
 search_agent = SearchAgentStack(app, "SearchAgentStack", opensearch.opensearch_endpoint)
+supervisor_agent = SupervisorAgentStack(app, "ShoppingAgentStack", customer_agent, recommend_agent, search_agent)
 
 app.synth()

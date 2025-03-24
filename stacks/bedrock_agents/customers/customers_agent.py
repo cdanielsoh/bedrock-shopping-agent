@@ -92,8 +92,7 @@ class CustomerAgentStack(Stack):
             action="lambda:InvokeFunction"
         )
 
-        # TODO
-        agent = bedrock.CfnAgent(
+        self.agent = bedrock.CfnAgent(
             self, "CustomerAgent",
             agent_name="CustomerAgent",
             agent_resource_role_arn=agent_role.role_arn,
@@ -185,6 +184,12 @@ class CustomerAgentStack(Stack):
                     action_group_state="ENABLED",
                 )
             ]
+        )
+
+        self.agent_alias = bedrock.CfnAgentAlias(
+            self, "CustomerAgentAlias",
+            agent_id=self.agent.attr_agent_id,
+            agent_alias_name="CustomerAgentAlias"
         )
 
     def _get_orders_lambda_code(self):
@@ -693,3 +698,4 @@ def update_email(table, parameters):
             }
         }
 """
+
