@@ -1,4 +1,4 @@
-ORDER_ID,USER_ID,TIMESTAMP,ITEM_ID,DELIVERY_STATUS
+order_id,user_id,timestamp,item_id,delivery_status
 0,2056,2020-06-10 16:01:25,41af1a6b-d952-40ed-ae74-4411c0ecb2c9,Delivered
 1,4252,2020-06-10 16:19:52,8a94535e-4638-43ed-ab9a-2ac90849a98b,Delivered
 2,328,2020-06-10 16:38:14,a8d5f650-a661-4089-a6b6-674874eee4ae,Delivered

@@ -29,6 +29,7 @@ class DynamoDBUserTableStack(Stack):
         # Create DynamoDB table
         user_table = dynamodb.Table(
             self, "UsersTable",
+            table_name="UsersTable",
             partition_key=dynamodb.Attribute(name="id", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             import_source=dynamodb.ImportSourceSpecification(
@@ -42,6 +43,7 @@ class DynamoDBUserTableStack(Stack):
         # Create items table
         items_table = dynamodb.Table(
             self, "ItemsTable",
+            table_name="ItemsTable",
             partition_key=dynamodb.Attribute(name="id", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             import_source=dynamodb.ImportSourceSpecification(
@@ -54,6 +56,7 @@ class DynamoDBUserTableStack(Stack):
 
         orders_table = dynamodb.Table(
             self, "OrdersTable",
+            table_name="OrdersTable",
             partition_key=dynamodb.Attribute(name="order_id", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             import_source=dynamodb.ImportSourceSpecification(
@@ -62,6 +65,13 @@ class DynamoDBUserTableStack(Stack):
                 key_prefix="orders.csv"
             ),
             removal_policy=RemovalPolicy.DESTROY
+        )
+
+        orders_table.add_global_secondary_index(
+            index_name="UserStatusIndex",
+            partition_key=dynamodb.Attribute(name="user_id", type=dynamodb.AttributeType.NUMBER),
+            sort_key=dynamodb.Attribute(name="delivery_status", type=dynamodb.AttributeType.STRING),
+            projection_type=dynamodb.ProjectionType.ALL
         )
 
         user_table.node.add_dependency(s3_upload)
