@@ -28,7 +28,7 @@ class DynamoDBUserTableStack(Stack):
 
         # Create DynamoDB table
         user_table = dynamodb.Table(
-            self, "UserTable",
+            self, "UsersTable",
             partition_key=dynamodb.Attribute(name="id", type=dynamodb.AttributeType.STRING),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             import_source=dynamodb.ImportSourceSpecification(
@@ -52,7 +52,20 @@ class DynamoDBUserTableStack(Stack):
             removal_policy=RemovalPolicy.DESTROY
         )
 
+        # orders_table = dynamodb.Table(
+        #     self, "OrdersTable",
+        #     partition_key=dynamodb.Attribute(name="order_id", type=dynamodb.AttributeType.STRING),
+        #     billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+        #     import_source=dynamodb.ImportSourceSpecification(
+        #         bucket=csv_bucket,
+        #         input_format=dynamodb.InputFormat.csv(),
+        #         key_prefix="orders.csv"
+        #     ),
+        #     removal_policy=RemovalPolicy.DESTROY
+        # )
+
         # Outputs
         CfnOutput(self, "UsersTableName", value=user_table.table_name)
         CfnOutput(self, "ItemsTableName", value=items_table.table_name)
+        # CfnOutput(self, "OrdersTableName", value=orders_table.table_name)
         CfnOutput(self, "BucketName", value=csv_bucket.bucket_name)
