@@ -8,8 +8,16 @@ from constructs import Construct
 import json
 
 class RecommendAgentStack(Stack):
-    def __init__(self, scope: Construct, construct_id: str, personalize_recommenders: dict, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        # Names are fixed in personalize_training_stack
+        personalize_recommenders = {
+            "USER_PERSONALIZATION_ARN": f"arn:aws:personalize:{self.region}:{self.account}:campaign/user-personalization",
+            "PERSONALIZED_RANKING_ARN": f"arn:aws:personalize:{self.region}:{self.account}:campaign/personalized-ranking",
+            "BEST_SELLERS_ARN": f"arn:aws:personalize:{self.region}:{self.account}:recommender/best-sellers-recommender",
+            "MOST_VIEWED_ARN": f"arn:aws:personalize:{self.region}:{self.account}:recommender/most-viewed-recommender"
+        }
 
         # Create IAM role for Bedrock Agent
         agent_role = iam.Role(

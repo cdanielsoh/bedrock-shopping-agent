@@ -78,6 +78,10 @@ class DynamoDBUserTableStack(Stack):
         items_table.node.add_dependency(s3_upload)
         orders_table.node.add_dependency(s3_upload)
 
+        self.user_table_name = user_table.table_name
+        self.items_table_name = items_table.table_name
+        self.orders_table_name = orders_table.table_name
+
         # Outputs
         CfnOutput(self, "UsersTableName", value=user_table.table_name)
         CfnOutput(self, "ItemsTableName", value=items_table.table_name)
