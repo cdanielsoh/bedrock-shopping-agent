@@ -20,7 +20,7 @@ class DynamoDBUserTableStack(Stack):
         )
 
         # Upload CSV to S3 bucket
-        s3deploy.BucketDeployment(
+        s3_upload = s3deploy.BucketDeployment(
             self, "DeployCSV",
             sources=[s3deploy.Source.asset("./data/dynamodb")],
             destination_bucket=csv_bucket
@@ -52,20 +52,24 @@ class DynamoDBUserTableStack(Stack):
             removal_policy=RemovalPolicy.DESTROY
         )
 
-        # orders_table = dynamodb.Table(
-        #     self, "OrdersTable",
-        #     partition_key=dynamodb.Attribute(name="order_id", type=dynamodb.AttributeType.STRING),
-        #     billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
-        #     import_source=dynamodb.ImportSourceSpecification(
-        #         bucket=csv_bucket,
-        #         input_format=dynamodb.InputFormat.csv(),
-        #         key_prefix="orders.csv"
-        #     ),
-        #     removal_policy=RemovalPolicy.DESTROY
-        # )
+        orders_table = dynamodb.Table(
+            self, "OrdersTable",
+            partition_key=dynamodb.Attribute(name="order_id", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            import_source=dynamodb.ImportSourceSpecification(
+                bucket=csv_bucket,
+                input_format=dynamodb.InputFormat.csv(),
+                key_prefix="orders.csv"
+            ),
+            removal_policy=RemovalPolicy.DESTROY
+        )
+
+        user_table.node.add_dependency(s3_upload)
+        items_table.node.add_dependency(s3_upload)
+        orders_table.node.add_dependency(s3_upload)
 
         # Outputs
         CfnOutput(self, "UsersTableName", value=user_table.table_name)
         CfnOutput(self, "ItemsTableName", value=items_table.table_name)
-        # CfnOutput(self, "OrdersTableName", value=orders_table.table_name)
+        CfnOutput(self, "OrdersTableName", value=orders_table.table_name)
         CfnOutput(self, "BucketName", value=csv_bucket.bucket_name)
