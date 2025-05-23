@@ -16,7 +16,8 @@ app = cdk.App()
 
 # Personalize data import and init training
 personalize_dataset_group = PersonalizeDataImportStack(app, "PersonalizeDataImportStack")
-PersonalizeTrainingStack(app, "PersonalizeTrainingStack3", personalize_dataset_group.dataset_group_arn)
+personalize_training = PersonalizeTrainingStack(app, "PersonalizeTrainingStack", personalize_dataset_group.dataset_group_arn)
+personalize_training.add_dependency(personalize_dataset_group)
 
 # Dataset load to OpenSearch and DynamoDB
 opensearch = OpenSearchServerlessStack(app, "OpenSearchServerlessStack")
@@ -24,8 +25,10 @@ dynamodb = DynamoDBUserTableStack(app, "DynamoDbStack")
 
 # Bedrock Agents
 customer_agent = CustomerAgentStack(app, "CustomerAgentStack", dynamodb.orders_table_name, dynamodb.user_table_name)
+customer_agent.add_dependency(dynamodb)
 recommend_agent = RecommendAgentStack(app, "RecommendAgentStack")
 search_agent = SearchAgentStack(app, "SearchAgentStack", opensearch.opensearch_endpoint)
+search_agent.add_dependency(opensearch)
 supervisor_agent = SupervisorAgentStack(app, "ShoppingAgentStack", customer_agent, recommend_agent, search_agent)
 
 app.synth()
