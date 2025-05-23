@@ -38,15 +38,22 @@ def trim_data(users_file='data/personalize/untrimmed/users.csv',
     top_users = purchase_counts.head(25).index.tolist()
     total_purchases = purchase_counts.head(25).sum()
     
-    # Add more users until we have >1000 purchases
-    current_index = 25
-    while total_purchases <= 1000 and current_index < len(purchase_counts):
-        next_user = purchase_counts.index[current_index]
-        top_users.append(next_user)
-        total_purchases += purchase_counts.iloc[current_index]
-        current_index += 1
+    # Convert random View interactions to Purchase until we have 1000 purchases
+    view_interactions = interactions_df[
+        (interactions_df['USER_ID'].isin(top_users)) & 
+        (interactions_df['EVENT_TYPE'] == 'View')
+    ]
     
-    print(f"Selected {len(top_users)} users with {total_purchases} total purchases")
+    # Calculate how many more purchases we need
+    additional_purchases_needed = 1000 - total_purchases
+    
+    if additional_purchases_needed > 0:
+        # Randomly sample View interactions to convert to Purchase
+        views_to_convert = view_interactions.sample(n=additional_purchases_needed, random_state=42)
+        interactions_df.loc[views_to_convert.index, 'EVENT_TYPE'] = 'Purchase'
+        total_purchases = 1000
+    
+    print(f"Converted {additional_purchases_needed} View interactions to Purchase")
     
     # Filter users dataframe to include only these top users
     sampled_users = users_df[users_df['USER_ID'].isin(top_users)]
