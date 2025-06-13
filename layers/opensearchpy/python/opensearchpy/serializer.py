@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -45,7 +46,7 @@ FLOAT_TYPES = (Decimal,)
 TIME_TYPES = (date, datetime)
 
 
-class Serializer:
+class Serializer(object):
     mimetype: str = ""
 
     def loads(self, s: str) -> Any:
@@ -65,7 +66,7 @@ class TextSerializer(Serializer):
         if isinstance(data, string_types):
             return data
 
-        raise SerializationError(f"Cannot serialize {data!r} into text.")
+        raise SerializationError("Cannot serialize %r into text." % data)
 
 
 class JSONSerializer(Serializer):
@@ -111,6 +112,7 @@ class JSONSerializer(Serializer):
             elif isinstance(
                 data,
                 (
+                    np.float_,
                     np.float16,
                     np.float32,
                     np.float64,
@@ -140,7 +142,7 @@ class JSONSerializer(Serializer):
         except ImportError:
             pass
 
-        raise TypeError(f"Unable to serialize {data!r} (type: {type(data)})")
+        raise TypeError("Unable to serialize %r (type: %s)" % (data, type(data)))
 
     def loads(self, s: str) -> Any:
         try:
@@ -167,7 +169,7 @@ DEFAULT_SERIALIZERS: Dict[str, Serializer] = {
 }
 
 
-class Deserializer:
+class Deserializer(object):
     def __init__(
         self,
         serializers: Dict[str, Serializer],
@@ -177,7 +179,7 @@ class Deserializer:
             self.default = serializers[default_mimetype]
         except KeyError:
             raise ImproperlyConfigured(
-                f"Cannot find default serializer ({default_mimetype})"
+                "Cannot find default serializer (%s)" % default_mimetype
             )
         self.serializers = serializers
 
@@ -196,7 +198,7 @@ class Deserializer:
                 deserializer = self.serializers[mimetype]
             except KeyError:
                 raise SerializationError(
-                    f"Unknown mimetype, unable to deserialize: {mimetype}"
+                    "Unknown mimetype, unable to deserialize: %s" % mimetype
                 )
 
         return deserializer.loads(s)
@@ -208,7 +210,7 @@ class AttrJSONSerializer(JSONSerializer):
             return data._l_
         if hasattr(data, "to_dict"):
             return data.to_dict()
-        return super().default(data)
+        return super(AttrJSONSerializer, self).default(data)
 
 
 serializer = AttrJSONSerializer()

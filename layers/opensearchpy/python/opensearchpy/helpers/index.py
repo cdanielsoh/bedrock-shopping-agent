@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -30,14 +31,14 @@ from opensearchpy.client import OpenSearch
 from opensearchpy.connection.connections import get_connection
 from opensearchpy.helpers import analysis
 
-from ..exceptions import IllegalOperation, ValidationException
+from ..exceptions import IllegalOperation
 from .mapping import Mapping
 from .search import Search
 from .update_by_query import UpdateByQuery
 from .utils import merge
 
 
-class IndexTemplate:
+class IndexTemplate(object):
     def __init__(
         self,
         name: Any,
@@ -76,7 +77,7 @@ class IndexTemplate:
         )
 
 
-class Index:
+class Index(object):
     def __init__(self, name: Any, using: Any = "default") -> None:
         """
         :arg name: name of the index
@@ -278,9 +279,7 @@ class Index:
             using=using or self._using, index=self._name, doc_type=self._doc_types
         )
 
-    def updateByQuery(  # pylint: disable=invalid-name
-        self, using: Optional[OpenSearch] = None
-    ) -> UpdateByQuery:
+    def updateByQuery(self, using: Optional[OpenSearch] = None) -> UpdateByQuery:
         """
         Return a :class:`~opensearchpy.UpdateByQuery` object searching over the index
         (or all the indices belonging to this template) and updating Documents that match
@@ -326,18 +325,9 @@ class Index:
         body = self.to_dict()
         settings = body.pop("settings", {})
         analysis = settings.pop("analysis", None)
-
-        # If _name points to an alias, the response object will contain keys with
-        # the index name(s) the alias points to. If the alias points to multiple
-        # indices, raise exception as the intention is ambiguous
-        settings_response = self.get_settings(using=using)
-        if len(settings_response) > 1:
-            raise ValidationException(
-                "Settings for %s point to multiple indices: %s."
-                % (self._name, ", ".join(list(settings_response.keys())))
-            )
-        current_settings = settings_response.popitem()[1]["settings"]["index"]
-
+        current_settings = self.get_settings(using=using)[self._name]["settings"][
+            "index"
+        ]
         if analysis:
             if self.is_closed(using=using):
                 # closed index, update away

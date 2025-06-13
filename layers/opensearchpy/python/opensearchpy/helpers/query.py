@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -34,9 +35,7 @@ from ..helpers.function import SF, ScoreFunction
 from .utils import DslBase
 
 
-def Q(  # pylint: disable=invalid-name
-    name_or_query: Any = "match_all", **params: Any
-) -> Any:
+def Q(name_or_query: Any = "match_all", **params: Any) -> Any:
     # {"match": {"title": "python"}}
     if isinstance(name_or_query, collections_abc.Mapping):
         if params:
@@ -219,12 +218,10 @@ class Bool(Query):
                 del q._params["minimum_should_match"]
 
             for qx in (self, other):
+                # TODO: percentages will fail here
                 min_should_match = qx._min_should_match
                 # all subqueries are required
-                if (
-                    isinstance(min_should_match, int)
-                    and len(qx.should) <= min_should_match
-                ):
+                if len(qx.should) <= min_should_match:
                     q.must.extend(qx.should)
                 # not all of them are required, use it and remember min_should_match
                 elif not q.should:
@@ -263,7 +260,7 @@ class FunctionScore(Query):
             for name in ScoreFunction._classes:
                 if name in kwargs:
                     fns.append({name: kwargs.pop(name)})
-        super().__init__(**kwargs)
+        super(FunctionScore, self).__init__(**kwargs)
 
 
 # compound queries

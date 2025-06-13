@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -14,8 +15,6 @@ import os
 import ssl
 import warnings
 from typing import Any, Collection, Mapping, Optional, Union
-
-import yarl
 
 from .._async._extra_imports import aiohttp, aiohttp_exceptions  # type: ignore
 from .._async.compat import get_running_loop
@@ -54,7 +53,7 @@ class AsyncHttpConnection(AIOHttpConnection):
         http_compress: Optional[bool] = None,
         opaque_id: Optional[str] = None,
         loop: Any = None,
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
         self.headers = {}
 
@@ -65,7 +64,7 @@ class AsyncHttpConnection(AIOHttpConnection):
             headers=headers,
             http_compress=http_compress,
             opaque_id=opaque_id,
-            **kwargs,
+            **kwargs
         )
 
         if http_auth is not None:
@@ -144,10 +143,6 @@ class AsyncHttpConnection(AIOHttpConnection):
         self.loop = loop
         self.session = None
 
-        # Align with Sync Interface
-        if "pool_maxsize" in kwargs:
-            maxsize = kwargs.pop("pool_maxsize")
-
         # Parameters for creating an aiohttp.ClientSession later.
         self._limit = maxsize
         self._http_auth = http_auth
@@ -173,6 +168,14 @@ class AsyncHttpConnection(AIOHttpConnection):
         else:
             query_string = ""
 
+        # There is a bug in aiohttp that disables the re-use
+        # of the connection in the pool when method=HEAD.
+        # See: https://github.com/aio-libs/aiohttp/issues/1769
+        is_head = False
+        if method == "HEAD":
+            method = "GET"
+            is_head = True
+
         # Top-tier tip-toeing happening here. Basically
         # because Pip's old resolver is bad and wipes out
         # strict pins in favor of non-strict pins of extras
@@ -184,7 +187,7 @@ class AsyncHttpConnection(AIOHttpConnection):
         # then we pass a string into ClientSession.request() instead.
         url = self.url_prefix + url
         if query_string:
-            url = f"{url}?{query_string}"
+            url = "%s?%s" % (url, query_string)
         url = self.host + url
 
         timeout = aiohttp.ClientTimeout(
@@ -212,14 +215,18 @@ class AsyncHttpConnection(AIOHttpConnection):
         try:
             async with self.session.request(
                 method,
-                yarl.URL(url, encoded=True),
+                url,
                 data=body,
                 auth=auth,
                 headers=req_headers,
                 timeout=timeout,
                 fingerprint=self.ssl_assert_fingerprint,
             ) as response:
-                raw_data = await response.text()
+                if is_head:  # We actually called 'GET' so throw away the data.
+                    await response.release()
+                    raw_data = ""
+                else:
+                    raw_data = await response.text()
                 duration = self.loop.time() - start
 
         # We want to reraise a cancellation or recursion error.
@@ -271,7 +278,6 @@ class AsyncHttpConnection(AIOHttpConnection):
         """
         if self.session:
             await self.session.close()
-            self.session = None
 
     async def _create_aiohttp_session(self) -> Any:
         """Creates an aiohttp.ClientSession(). This is delayed until

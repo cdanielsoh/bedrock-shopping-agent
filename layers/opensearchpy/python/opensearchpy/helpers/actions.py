@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -198,7 +199,7 @@ def _process_bulk_chunk_success(
             yield ok, {op_type: item}
 
     if errors:
-        raise BulkIndexError(f"{len(errors)} document(s) failed to index.", errors)
+        raise BulkIndexError("%i document(s) failed to index." % len(errors), errors)
 
 
 def _process_bulk_chunk_error(
@@ -228,7 +229,7 @@ def _process_bulk_chunk_error(
     # emulate standard behavior for failed actions
     if raise_on_error and error.status_code not in ignore_status:
         raise BulkIndexError(
-            f"{len(exc_errors)} document(s) failed to index.", exc_errors
+            "%i document(s) failed to index." % len(exc_errors), exc_errors
         )
     else:
         for err in exc_errors:
@@ -243,7 +244,7 @@ def _process_bulk_chunk(
     raise_on_error: bool = True,
     ignore_status: Any = (),
     *args: Any,
-    **kwargs: Any,
+    **kwargs: Any
 ) -> Any:
     """
     Send a bulk request to opensearch and process the output.
@@ -269,7 +270,8 @@ def _process_bulk_chunk(
             ignore_status=ignore_status,
             raise_on_error=raise_on_error,
         )
-    yield from gen
+    for item in gen:
+        yield item
 
 
 def streaming_bulk(
@@ -286,7 +288,7 @@ def streaming_bulk(
     yield_ok: bool = True,
     ignore_status: Any = (),
     *args: Any,
-    **kwargs: Any,
+    **kwargs: Any
 ) -> Any:
     """
     Streaming bulk consumes actions from the iterable passed in and yields
@@ -343,7 +345,7 @@ def streaming_bulk(
                         raise_on_error,
                         ignore_status,
                         *args,
-                        **kwargs,
+                        **kwargs
                     ),
                 ):
                     if not ok:
@@ -383,7 +385,7 @@ def bulk(
     stats_only: bool = False,
     ignore_status: Any = (),
     *args: Any,
-    **kwargs: Any,
+    **kwargs: Any
 ) -> Any:
     """
     Helper for the :meth:`~opensearchpy.OpenSearch.bulk` api that provides
@@ -444,7 +446,7 @@ def parallel_bulk(
     raise_on_error: bool = True,
     ignore_status: Any = (),
     *args: Any,
-    **kwargs: Any,
+    **kwargs: Any
 ) -> Any:
     """
     Parallel version of the bulk helper run in multiple threads at once.
@@ -473,7 +475,7 @@ def parallel_bulk(
 
     class BlockingPool(ThreadPool):
         def _setup_queues(self) -> None:
-            super()._setup_queues()  # type: ignore
+            super(BlockingPool, self)._setup_queues()  # type: ignore
             # The queue must be at least the size of the number of threads to
             # prevent hanging when inserting sentinel values during teardown.
             self._inqueue: Any = Queue(max(queue_size, thread_count))
@@ -492,14 +494,15 @@ def parallel_bulk(
                     raise_on_error,
                     ignore_status,
                     *args,
-                    **kwargs,
+                    **kwargs
                 )
             ),
             _chunk_actions(
                 actions, chunk_size, max_chunk_bytes, client.transport.serializer
             ),
         ):
-            yield from result
+            for item in result:
+                yield item
 
     finally:
         pool.close()
@@ -516,7 +519,7 @@ def scan(
     request_timeout: Optional[float] = None,
     clear_scroll: Optional[bool] = True,
     scroll_kwargs: Any = None,
-    **kwargs: Any,
+    **kwargs: Any
 ) -> Any:
     """
     Simple abstraction on top of the
@@ -584,16 +587,14 @@ def scan(
     scroll_id = resp.get("_scroll_id")
 
     try:
-        while scroll_id and resp.get("hits", {}).get("hits"):
-            yield from resp.get("hits", {}).get("hits", [])
+        while scroll_id and resp["hits"]["hits"]:
+            for hit in resp["hits"]["hits"]:
+                yield hit
 
-            _shards = resp.get("_shards")
-
-            if _shards:
-                # Default to 0 if the value isn't included in the response
-                shards_successful = _shards.get("successful", 0)
-                shards_skipped = _shards.get("skipped", 0)
-                shards_total = _shards.get("total", 0)
+            # Default to 0 if the value isn't included in the response
+            shards_successful = resp["_shards"].get("successful", 0)
+            shards_skipped = resp["_shards"].get("skipped", 0)
+            shards_total = resp["_shards"].get("total", 0)
 
             # check if we have any errors
             if (shards_successful + shards_skipped) < shards_total:
@@ -614,7 +615,6 @@ def scan(
                             shards_total,
                         ),
                     )
-
             resp = client.scroll(
                 body={"scroll_id": scroll_id, "scroll": scroll}, **scroll_kwargs
             )
@@ -684,5 +684,5 @@ def reindex(
         target_client,
         _change_doc_index(docs, target_index),
         chunk_size=chunk_size,
-        **kwargs,
+        **kwargs
     )

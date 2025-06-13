@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -25,9 +26,9 @@
 #  under the License.
 
 
-from ...client.utils import NamespacedClient  # noqa
-from ...client.utils import (
+from ...client.utils import (  # noqa
     SKIP_IN_PATH,
+    NamespacedClient,
     _bulk_body,
     _escape,
     _make_path,

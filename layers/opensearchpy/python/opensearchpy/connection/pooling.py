@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -47,7 +48,7 @@ class PoolingConnection(Connection):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._free_connections = queue.Queue()
-        super().__init__(*args, **kwargs)
+        super(PoolingConnection, self).__init__(*args, **kwargs)
 
     def _make_connection(self) -> Connection:
         raise NotImplementedError

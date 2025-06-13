@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -7,13 +8,14 @@
 # Modifications Copyright OpenSearch Contributors. See
 # GitHub history for details.
 
-# ------------------------------------------------------------------------------------------
-# THIS CODE IS AUTOMATICALLY GENERATED AND MANUAL EDITS WILL BE LOST
+# ----------------------------------------------------
+# THIS CODE IS GENERATED AND MANUAL EDITS WILL BE LOST.
 #
-# To contribute, kindly make modifications in the opensearch-py client generator
-# or in the OpenSearch API specification, and run `nox -rs generate`. See DEVELOPER_GUIDE.md
-# and https://github.com/opensearch-project/opensearch-api-specification for details.
-# -----------------------------------------------------------------------------------------+
+# To contribute, kindly make essential modifications through either the "opensearch-py client generator":
+# https://github.com/opensearch-project/opensearch-py/blob/main/utils/generate-api.py
+# or the "OpenSearch API specification" available at:
+# https://github.com/opensearch-project/opensearch-api-specification/blob/main/OpenSearch.openapi.json
+# -----------------------------------------------------
 
 
 from typing import Any
@@ -22,15 +24,7 @@ from .utils import SKIP_IN_PATH, NamespacedClient, query_params
 
 
 class RemoteStoreClient(NamespacedClient):
-    @query_params(
-        "cluster_manager_timeout",
-        "error_trace",
-        "filter_path",
-        "human",
-        "pretty",
-        "source",
-        "wait_for_completion",
-    )
+    @query_params("cluster_manager_timeout", "wait_for_completion")
     def restore(
         self,
         body: Any,
@@ -44,18 +38,6 @@ class RemoteStoreClient(NamespacedClient):
         :arg body: Comma-separated list of index IDs
         :arg cluster_manager_timeout: Operation timeout for connection
             to cluster-manager node.
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
         :arg wait_for_completion: Should this request wait until the
             operation has completed before returning. Default is false.
         """

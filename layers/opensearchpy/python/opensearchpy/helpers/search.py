@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -28,6 +29,8 @@ import collections.abc as collections_abc
 import copy
 from typing import Any
 
+from six import iteritems, string_types
+
 from opensearchpy.connection.connections import get_connection
 from opensearchpy.exceptions import TransportError
 from opensearchpy.helpers import scan
@@ -39,7 +42,7 @@ from .response import Hit, Response
 from .utils import AttrDict, DslBase, recursive_to_dict
 
 
-class QueryProxy:
+class QueryProxy(object):
     """
     Simple proxy around DSL objects (queries) that can be called
     (to add query/post_filter) and also allows attribute access which is proxied to
@@ -77,7 +80,7 @@ class QueryProxy:
         if not attr_name.startswith("_"):
             self._proxied = Q(self._proxied.to_dict())
             setattr(self._proxied, attr_name, value)
-        super().__setattr__(attr_name, value)
+        super(QueryProxy, self).__setattr__(attr_name, value)
 
     def __getstate__(self) -> Any:
         return self._search, self._proxied, self._attr_name
@@ -86,7 +89,7 @@ class QueryProxy:
         self._search, self._proxied, self._attr_name = state
 
 
-class ProxyDescriptor:
+class ProxyDescriptor(object):
     """
     Simple descriptor to enable setting of queries and filters as:
 
@@ -96,7 +99,7 @@ class ProxyDescriptor:
     """
 
     def __init__(self, name: str) -> None:
-        self._attr_name = f"_{name}_proxy"
+        self._attr_name = "_%s_proxy" % name
 
     def __get__(self, instance: Any, owner: Any) -> Any:
         return getattr(instance, self._attr_name)
@@ -115,10 +118,10 @@ class AggsProxy(AggBase, DslBase):
         self._params = {"aggs": {}}
 
     def to_dict(self) -> Any:
-        return super().to_dict().get("aggs", {})
+        return super(AggsProxy, self).to_dict().get("aggs", {})
 
 
-class Request:
+class Request(object):
     _doc_type: Any
     _doc_type_map: Any
 
@@ -193,7 +196,7 @@ class Request:
         else:
             indexes = []
             for i in index:
-                if isinstance(i, str):
+                if isinstance(i, string_types):
                     indexes.append(i)
                 elif isinstance(i, list):
                     indexes += i
@@ -331,7 +334,7 @@ class Search(Request):
         All the parameters supplied (or omitted) at creation type can be later
         overridden by methods (`using`, `index` and `doc_type` respectively).
         """
-        super().__init__(**kwargs)
+        super(Search, self).__init__(**kwargs)
 
         self.aggs = AggsProxy(self)
         self._sort: Any = []
@@ -420,7 +423,7 @@ class Search(Request):
         of all the underlying objects. Used internally by most state modifying
         APIs.
         """
-        s = super()._clone()
+        s = super(Search, self)._clone()
 
         s._response_class = self._response_class
         s._sort = self._sort[:]
@@ -429,7 +432,6 @@ class Search(Request):
         s._highlight_opts = self._highlight_opts.copy()
         s._suggest = self._suggest.copy()
         s._script_fields = self._script_fields.copy()
-        s._collapse = self._collapse.copy()
         for x in ("query", "post_filter"):
             getattr(s, x)._proxied = getattr(self, x)._proxied
 
@@ -460,7 +462,7 @@ class Search(Request):
         aggs = d.pop("aggs", d.pop("aggregations", {}))
         if aggs:
             self.aggs._params = {
-                "aggs": {name: A(value) for (name, value) in aggs.items()}
+                "aggs": {name: A(value) for (name, value) in iteritems(aggs)}
             }
         if "sort" in d:
             self._sort = d.pop("sort")
@@ -502,7 +504,7 @@ class Search(Request):
         """
         s = self._clone()
         for name in kwargs:
-            if isinstance(kwargs[name], str):
+            if isinstance(kwargs[name], string_types):
                 kwargs[name] = {"script": kwargs[name]}
         s._script_fields.update(kwargs)
         return s
@@ -578,7 +580,7 @@ class Search(Request):
         s = self._clone()
         s._sort = []
         for k in keys:
-            if isinstance(k, str) and k.startswith("-"):
+            if isinstance(k, string_types) and k.startswith("-"):
                 if k[1:] == "_score":
                     raise IllegalOperation("Sorting by `-_score` is not allowed.")
                 k = {k[1:]: {"order": "desc"}}
@@ -799,7 +801,7 @@ class MultiSearch(Request):
     """
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+        super(MultiSearch, self).__init__(**kwargs)
         self._searches: Any = []
 
     def __getitem__(self, key: Any) -> Any:
@@ -809,7 +811,7 @@ class MultiSearch(Request):
         return iter(self._searches)
 
     def _clone(self) -> Any:
-        ms = super()._clone()
+        ms = super(MultiSearch, self)._clone()
         ms._searches = self._searches[:]
         return ms
 

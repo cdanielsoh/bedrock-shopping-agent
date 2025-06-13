@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -120,7 +121,7 @@ class TransportError(OpenSearchException):
         except LookupError:
             pass
         msg = ", ".join(filter(None, [str(self.status_code), repr(self.error), cause]))
-        return f"{self.__class__.__name__}({msg})"
+        return "%s(%s)" % (self.__class__.__name__, msg)
 
 
 class ConnectionError(TransportError):
@@ -131,7 +132,7 @@ class ConnectionError(TransportError):
     """
 
     def __str__(self) -> str:
-        return "ConnectionError({}) caused by: {}({})".format(
+        return "ConnectionError(%s) caused by: %s(%s)" % (
             self.error,
             self.info.__class__.__name__,
             self.info,
@@ -146,7 +147,7 @@ class ConnectionTimeout(ConnectionError):
     """A network timeout. Doesn't cause a node retry by default."""
 
     def __str__(self) -> str:
-        return "ConnectionTimeout caused by - {}({})".format(
+        return "ConnectionTimeout caused by - %s(%s)" % (
             self.info.__class__.__name__,
             self.info,
         )

@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/ChatBox.tsx","./src/components/RecommendationBubbles.tsx","./src/components/UserSelector.tsx","./src/data/users.ts","./src/services/recommendations.ts","./src/services/websocket.ts","./src/types/index.ts"],"version":"5.8.3"}

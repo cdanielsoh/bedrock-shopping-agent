@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -147,11 +148,9 @@ class AlertingClient(NamespacedClient):
         """
         return await self.transport.perform_request(
             "GET",
-            (
-                _make_path("_plugins", "_alerting", "destinations", destination_id)
-                if destination_id
-                else _make_path("_plugins", "_alerting", "destinations")
-            ),
+            _make_path("_plugins", "_alerting", "destinations", destination_id)
+            if destination_id
+            else _make_path("_plugins", "_alerting", "destinations"),
             params=params,
             headers=headers,
         )

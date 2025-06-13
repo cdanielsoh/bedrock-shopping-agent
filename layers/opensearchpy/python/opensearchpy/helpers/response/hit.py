@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -37,28 +38,28 @@ class Hit(AttrDict):
         if "fields" in document:
             data.update(document["fields"])
 
-        super().__init__(data)
+        super(Hit, self).__init__(data)
         # assign meta as attribute and not as key in self._d_
         super(AttrDict, self).__setattr__("meta", HitMeta(document))
 
     def __getstate__(self) -> Any:
         # add self.meta since it is not in self.__dict__
-        return super().__getstate__() + (self.meta,)
+        return super(Hit, self).__getstate__() + (self.meta,)
 
     def __setstate__(self, state: Any) -> None:
         super(AttrDict, self).__setattr__("meta", state[-1])
-        super().__setstate__(state[:-1])
+        super(Hit, self).__setstate__(state[:-1])
 
     def __dir__(self) -> Any:
         # be sure to expose meta in dir(self)
-        return super().__dir__() + ["meta"]
+        return super(Hit, self).__dir__() + ["meta"]
 
     def __repr__(self) -> str:
         return "<Hit({}): {}>".format(
             "/".join(
                 getattr(self.meta, key) for key in ("index", "id") if key in self.meta
             ),
-            super().__repr__(),
+            super(Hit, self).__repr__(),
         )
 
 

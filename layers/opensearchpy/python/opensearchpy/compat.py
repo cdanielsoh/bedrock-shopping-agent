@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -31,16 +32,10 @@ from typing import Tuple, Type, Union
 from urllib.parse import quote, quote_plus, unquote, urlencode, urlparse
 
 string_types = str, bytes
-map = map  # pylint: disable=invalid-name
+map = map
 
 
 def to_str(x: Union[str, bytes], encoding: str = "ascii") -> str:
-    """
-    returns x as a string encoded in "encoding" if it is not already a string
-    :param x: the value to convert to a str
-    :param encoding: the encoding to convert to - see https://docs.python.org/3/library/codecs.html#standard-encodings
-    :return: an encoded str
-    """
     if not isinstance(x, str):
         return x.decode(encoding)
     return x

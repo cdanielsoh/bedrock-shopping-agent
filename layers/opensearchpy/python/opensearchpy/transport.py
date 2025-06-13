@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -28,8 +29,6 @@
 import time
 from itertools import chain
 from typing import Any, Callable, Collection, Dict, List, Mapping, Optional, Type, Union
-
-from opensearchpy.metrics import Metrics, MetricsNone
 
 from .connection import Connection, Urllib3HttpConnection
 from .connection_pool import ConnectionPool, DummyConnectionPool, EmptyConnectionPool
@@ -64,7 +63,7 @@ def get_host_info(
     return host
 
 
-class Transport:
+class Transport(object):
     """
     Encapsulation of transport-related to logic. Handles instantiation of the
     individual connections as well as creating a connection pool to hold them.
@@ -93,7 +92,6 @@ class Transport:
     last_sniff: float
     sniff_timeout: Optional[float]
     host_info_callback: Any
-    metrics: Metrics
 
     def __init__(
         self,
@@ -115,7 +113,6 @@ class Transport:
         retry_on_status: Collection[int] = (502, 503, 504),
         retry_on_timeout: bool = False,
         send_get_body_as: str = "GET",
-        metrics: Metrics = MetricsNone(),
         **kwargs: Any
     ) -> None:
         """
@@ -152,15 +149,11 @@ class Transport:
             will be serialized and passed as a query parameter `source`.
         :arg pool_maxsize: Maximum connection pool size used by pool-manager
             For custom connection-pooling on current session
-        :arg metrics: metrics is an instance of a subclass of the
-            :class:`~opensearchpy.Metrics` class, used for collecting
-            and reporting metrics related to the client's operations;
 
         Any extra keyword arguments will be passed to the `connection_class`
         when creating and instance unless overridden by that connection's
         options provided as part of the hosts parameter.
         """
-        self.metrics = metrics
         if connection_class is None:
             connection_class = self.DEFAULT_CONNECTION_CLASS
 
@@ -250,7 +243,7 @@ class Transport:
             kwargs.update(host)
             if self.pool_maxsize and isinstance(self.pool_maxsize, int):
                 kwargs["pool_maxsize"] = self.pool_maxsize
-            return self.connection_class(metrics=self.metrics, **kwargs)
+            return self.connection_class(**kwargs)
 
         connections = list(zip(map(_create_connection, hosts), hosts))
         if len(connections) == 1:
@@ -404,11 +397,9 @@ class Transport:
             underlying :class:`~opensearchpy.Connection` class for serialization
         :arg body: body of the request, will be serialized using serializer and
             passed to the connection
-        :arg timeout: timeout of the request. If it is not presented as argument
-            will be extracted from `params`
         """
         method, params, body, ignore, timeout = self._resolve_request_args(
-            method, params, body, ignore, timeout
+            method, params, body
         )
 
         for attempt in range(self.max_retries + 1):
@@ -475,14 +466,7 @@ class Transport:
         """
         return self.connection_pool.close()
 
-    def _resolve_request_args(
-        self,
-        method: str,
-        params: Any,
-        body: Any,
-        ignore: Collection[int],
-        timeout: Optional[Union[int, float]],
-    ) -> Any:
+    def _resolve_request_args(self, method: str, params: Any, body: Any) -> Any:
         """Resolves parameters for .perform_request()"""
         if body is not None:
             body = self.serializer.dumps(body)
@@ -507,13 +491,13 @@ class Transport:
                 # bytes/str - no need to re-encode
                 pass
 
+        ignore = ()
+        timeout = None
         if params:
+            timeout = params.pop("request_timeout", None)
             if not timeout:
-                timeout = params.pop("request_timeout", None) or params.pop(
-                    "timeout", None
-                )
-            if not ignore:
-                ignore = params.pop("ignore", ())
+                timeout = params.pop("timeout", None)
+            ignore = params.pop("ignore", ())
             if isinstance(ignore, int):
                 ignore = (ignore,)
 

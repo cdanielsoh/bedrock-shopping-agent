@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -26,6 +27,7 @@
 
 
 # flake8: noqa
+from __future__ import absolute_import
 
 import logging
 import re
@@ -33,9 +35,9 @@ import warnings
 
 from ._version import __versionstr__
 
-_major, _minor, _patch = (
+_major, _minor, _patch = [
     int(x) for x in re.search(r"^(\d+)\.(\d+)\.(\d+)", __versionstr__).groups()  # type: ignore
-)
+]
 
 VERSION = __version__ = (_major, _minor, _patch)
 
@@ -132,7 +134,6 @@ from .helpers.search import MultiSearch, Search
 from .helpers.update_by_query import UpdateByQuery
 from .helpers.utils import AttrDict, AttrList, DslBase
 from .helpers.wrappers import Range
-from .metrics import Metrics, MetricsEvents, MetricsNone
 from .serializer import JSONSerializer
 from .transport import Transport
 
@@ -240,9 +241,6 @@ __all__ = [
     "token_filter",
     "tokenizer",
     "__versionstr__",
-    "Metrics",
-    "MetricsEvents",
-    "MetricsNone",
 ]
 
 try:

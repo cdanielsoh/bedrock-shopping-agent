@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -15,7 +16,7 @@ from .utils import NamespacedClient
 
 class HttpClient(NamespacedClient):
     def __init__(self, client: Client) -> None:
-        super().__init__(client)
+        super(HttpClient, self).__init__(client)
 
     def get(
         self,

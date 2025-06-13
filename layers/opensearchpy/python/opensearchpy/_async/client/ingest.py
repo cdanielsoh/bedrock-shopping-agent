@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -25,13 +26,14 @@
 #  under the License.
 
 
-# ------------------------------------------------------------------------------------------
-# THIS CODE IS AUTOMATICALLY GENERATED AND MANUAL EDITS WILL BE LOST
+# ----------------------------------------------------
+# THIS CODE IS GENERATED AND MANUAL EDITS WILL BE LOST.
 #
-# To contribute, kindly make modifications in the opensearch-py client generator
-# or in the OpenSearch API specification, and run `nox -rs generate`. See DEVELOPER_GUIDE.md
-# and https://github.com/opensearch-project/opensearch-api-specification for details.
-# -----------------------------------------------------------------------------------------+
+# To contribute, kindly make essential modifications through either the "opensearch-py client generator":
+# https://github.com/opensearch-project/opensearch-py/blob/main/utils/generate-api.py
+# or the "OpenSearch API specification" available at:
+# https://github.com/opensearch-project/opensearch-api-specification/blob/main/OpenSearch.openapi.json
+# -----------------------------------------------------
 
 
 from typing import Any
@@ -40,15 +42,7 @@ from .utils import SKIP_IN_PATH, NamespacedClient, _make_path, query_params
 
 
 class IngestClient(NamespacedClient):
-    @query_params(
-        "cluster_manager_timeout",
-        "error_trace",
-        "filter_path",
-        "human",
-        "master_timeout",
-        "pretty",
-        "source",
-    )
+    @query_params("cluster_manager_timeout", "master_timeout")
     async def get_pipeline(
         self,
         id: Any = None,
@@ -59,42 +53,19 @@ class IngestClient(NamespacedClient):
         Returns a pipeline.
 
 
-        :arg id: Comma-separated list of pipeline IDs to retrieve.
-            Wildcard (`*`) expressions are supported. To get all ingest pipelines,
-            omit this parameter or use `*`.
+        :arg id: Comma-separated list of pipeline ids. Wildcards
+            supported.
         :arg cluster_manager_timeout: Operation timeout for connection
             to cluster-manager node.
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
         :arg master_timeout (Deprecated: To promote inclusive language,
-            use `cluster_manager_timeout` instead.): Period to wait for a connection
-            to the cluster-manager node. If no response is received before the
-            timeout expires, the request fails and returns an error.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
+            use 'cluster_manager_timeout' instead.): Operation timeout for
+            connection to master node.
         """
         return await self.transport.perform_request(
             "GET", _make_path("_ingest", "pipeline", id), params=params, headers=headers
         )
 
-    @query_params(
-        "cluster_manager_timeout",
-        "error_trace",
-        "filter_path",
-        "human",
-        "master_timeout",
-        "pretty",
-        "source",
-        "timeout",
-    )
+    @query_params("cluster_manager_timeout", "master_timeout", "timeout")
     async def put_pipeline(
         self,
         id: Any,
@@ -106,29 +77,14 @@ class IngestClient(NamespacedClient):
         Creates or updates a pipeline.
 
 
-        :arg id: ID of the ingest pipeline to create or update.
+        :arg id: Pipeline ID.
         :arg body: The ingest definition
         :arg cluster_manager_timeout: Operation timeout for connection
             to cluster-manager node.
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
         :arg master_timeout (Deprecated: To promote inclusive language,
-            use `cluster_manager_timeout` instead.): Period to wait for a connection
-            to the cluster-manager node. If no response is received before the
-            timeout expires, the request fails and returns an error.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
-        :arg timeout: Period to wait for a response. If no response is
-            received before the timeout expires, the request fails and returns an
-            error.
+            use 'cluster_manager_timeout' instead.): Operation timeout for
+            connection to master node.
+        :arg timeout: Operation timeout.
         """
         for param in (id, body):
             if param in SKIP_IN_PATH:
@@ -142,16 +98,7 @@ class IngestClient(NamespacedClient):
             body=body,
         )
 
-    @query_params(
-        "cluster_manager_timeout",
-        "error_trace",
-        "filter_path",
-        "human",
-        "master_timeout",
-        "pretty",
-        "source",
-        "timeout",
-    )
+    @query_params("cluster_manager_timeout", "master_timeout", "timeout")
     async def delete_pipeline(
         self,
         id: Any,
@@ -162,30 +109,13 @@ class IngestClient(NamespacedClient):
         Deletes a pipeline.
 
 
-        :arg id: Pipeline ID or wildcard expression of pipeline IDs used
-            to limit the request. To delete all ingest pipelines in a cluster, use a
-            value of `*`.
+        :arg id: Pipeline ID.
         :arg cluster_manager_timeout: Operation timeout for connection
             to cluster-manager node.
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
         :arg master_timeout (Deprecated: To promote inclusive language,
-            use `cluster_manager_timeout` instead.): Period to wait for a connection
-            to the cluster-manager node. If no response is received before the
-            timeout expires, the request fails and returns an error.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
-        :arg timeout: Period to wait for a response. If no response is
-            received before the timeout expires, the request fails and returns an
-            error.
+            use 'cluster_manager_timeout' instead.): Operation timeout for
+            connection to master node.
+        :arg timeout: Operation timeout.
         """
         if id in SKIP_IN_PATH:
             raise ValueError("Empty value passed for a required argument 'id'.")
@@ -197,7 +127,7 @@ class IngestClient(NamespacedClient):
             headers=headers,
         )
 
-    @query_params("error_trace", "filter_path", "human", "pretty", "source", "verbose")
+    @query_params("verbose")
     async def simulate(
         self,
         body: Any,
@@ -210,22 +140,9 @@ class IngestClient(NamespacedClient):
 
 
         :arg body: The simulate definition
-        :arg id: Pipeline to test. If you don't specify a `pipeline` in
-            the request body, this parameter is required.
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
-        :arg verbose: If `true`, the response includes output data for
-            each processor in the executed pipeline. Default is false.
+        :arg id: Pipeline ID.
+        :arg verbose: Verbose mode. Display data output for each
+            processor in executed pipeline. Default is false.
         """
         if body in SKIP_IN_PATH:
             raise ValueError("Empty value passed for a required argument 'body'.")
@@ -238,7 +155,7 @@ class IngestClient(NamespacedClient):
             body=body,
         )
 
-    @query_params("error_trace", "filter_path", "human", "pretty", "s", "source")
+    @query_params()
     async def processor_grok(
         self,
         params: Any = None,
@@ -247,20 +164,6 @@ class IngestClient(NamespacedClient):
         """
         Returns a list of the built-in patterns.
 
-
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg s: Sort returned patterns by key name. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
         """
         return await self.transport.perform_request(
             "GET", "/_ingest/processor/grok", params=params, headers=headers

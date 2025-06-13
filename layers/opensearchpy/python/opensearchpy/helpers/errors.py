@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -41,5 +42,5 @@ class ScanError(OpenSearchException):
     scroll_id: str
 
     def __init__(self, scroll_id: str, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+        super(ScanError, self).__init__(*args, **kwargs)
         self.scroll_id = scroll_id

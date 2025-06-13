@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -36,8 +37,6 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-from opensearchpy.metrics import Metrics, MetricsNone
-
 from ..compat import reraise_exceptions, string_types, urlencode
 from ..exceptions import (
     ConnectionError,
@@ -71,9 +70,6 @@ class RequestsHttpConnection(Connection):
         For tracing all requests made by this transport.
     :arg pool_maxsize: Maximum connection pool size used by pool-manager
         For custom connection-pooling on current session
-    :arg metrics: metrics is an instance of a subclass of the
-        :class:`~opensearchpy.Metrics` class, used for collecting
-        and reporting metrics related to the client's operations;
     """
 
     def __init__(
@@ -91,10 +87,8 @@ class RequestsHttpConnection(Connection):
         http_compress: Any = None,
         opaque_id: Any = None,
         pool_maxsize: Any = None,
-        metrics: Metrics = MetricsNone(),
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
-        self.metrics = metrics
         if not REQUESTS_AVAILABLE:
             raise ImproperlyConfigured(
                 "Please install requests to use RequestsHttpConnection."
@@ -111,14 +105,14 @@ class RequestsHttpConnection(Connection):
             self.session.mount("http://", pool_adapter)
             self.session.mount("https://", pool_adapter)
 
-        super().__init__(
+        super(RequestsHttpConnection, self).__init__(
             host=host,
             port=port,
             use_ssl=use_ssl,
             headers=headers,
             http_compress=http_compress,
             opaque_id=opaque_id,
-            **kwargs,
+            **kwargs
         )
 
         if not self.http_compress:
@@ -132,7 +126,10 @@ class RequestsHttpConnection(Connection):
                 http_auth = tuple(http_auth.split(":", 1))  # type: ignore
             self.session.auth = http_auth
 
-        self.base_url = f"{self.host}{self.url_prefix}"
+        self.base_url = "%s%s" % (
+            self.host,
+            self.url_prefix,
+        )
         self.session.verify = verify_certs
         if not client_key:
             self.session.cert = client_cert
@@ -173,7 +170,7 @@ class RequestsHttpConnection(Connection):
         url = self.base_url + url
         headers = headers or {}
         if params:
-            url = f"{url}?{urlencode(params or {})}"
+            url = "%s?%s" % (url, urlencode(params or {}))
 
         orig_body = body
         if self.http_compress and body:
@@ -192,7 +189,6 @@ class RequestsHttpConnection(Connection):
         }
         send_kwargs.update(settings)
         try:
-            self.metrics.request_start()
             response = self.session.send(prepared_request, **send_kwargs)
             duration = time.time() - start
             raw_data = response.content.decode("utf-8", "surrogatepass")
@@ -212,8 +208,6 @@ class RequestsHttpConnection(Connection):
             if isinstance(e, requests.Timeout):
                 raise ConnectionTimeout("TIMEOUT", str(e), e)
             raise ConnectionError("N/A", str(e), e)
-        finally:
-            self.metrics.request_end()
 
         # raise warnings if any from the 'Warnings' header.
         warnings_headers = (

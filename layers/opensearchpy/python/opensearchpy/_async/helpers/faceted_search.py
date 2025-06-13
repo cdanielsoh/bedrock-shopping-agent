@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -10,12 +11,14 @@
 
 from typing import Any
 
+from six import iteritems, itervalues
+
 from opensearchpy._async.helpers.search import AsyncSearch
 from opensearchpy.helpers.faceted_search import FacetedResponse
 from opensearchpy.helpers.query import MatchAll
 
 
-class AsyncFacetedSearch:
+class AsyncFacetedSearch(object):
     """
     Abstraction for creating faceted navigation searches that takes care of
     composing the queries, aggregations and filters as needed as well as
@@ -73,7 +76,7 @@ class AsyncFacetedSearch:
         self._filters: Any = {}
         self._sort = sort
         self.filter_values: Any = {}
-        for name, value in filters.items():
+        for name, value in iteritems(filters):
             self.add_filter(name, value)
 
         self._s = self.build_search()
@@ -138,10 +141,10 @@ class AsyncFacetedSearch:
         Add aggregations representing the facets selected, including potential
         filters.
         """
-        for f, facet in self.facets.items():
+        for f, facet in iteritems(self.facets):
             agg = facet.get_aggregation()
             agg_filter = MatchAll()
-            for field, filter in self._filters.items():
+            for field, filter in iteritems(self._filters):
                 if f == field:
                     continue
                 agg_filter &= filter
@@ -158,7 +161,7 @@ class AsyncFacetedSearch:
             return search
 
         post_filter = MatchAll()
-        for f in self._filters.values():
+        for f in itervalues(self._filters):
             post_filter &= f
         return search.post_filter(post_filter)
 

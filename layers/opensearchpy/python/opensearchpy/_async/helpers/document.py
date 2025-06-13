@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -10,6 +11,8 @@
 import collections.abc as collections_abc
 from fnmatch import fnmatch
 from typing import Any, Optional, Tuple, Type
+
+from six import add_metaclass
 
 from opensearchpy._async.client import AsyncOpenSearch
 from opensearchpy._async.helpers.index import AsyncIndex
@@ -36,7 +39,7 @@ class AsyncIndexMeta(DocumentMeta):
         bases: Tuple[Type[ObjectBase]],
         attrs: Any,
     ) -> Any:
-        new_cls = super().__new__(cls, name, bases, attrs)
+        new_cls = super(AsyncIndexMeta, cls).__new__(cls, name, bases, attrs)
         if cls._document_initialized:
             index_opts = attrs.pop("Index", None)
             index = cls.construct_index(index_opts, bases)
@@ -65,7 +68,8 @@ class AsyncIndexMeta(DocumentMeta):
         return i
 
 
-class AsyncDocument(ObjectBase, metaclass=AsyncIndexMeta):
+@add_metaclass(AsyncIndexMeta)
+class AsyncDocument(ObjectBase):
     """
     Model-like class for persisting documents in opensearch.
     """
@@ -117,7 +121,7 @@ class AsyncDocument(ObjectBase, metaclass=AsyncIndexMeta):
         return "{}({})".format(
             self.__class__.__name__,
             ", ".join(
-                f"{key}={getattr(self.meta, key)!r}"
+                "{}={!r}".format(key, getattr(self.meta, key))
                 for key in ("index", "id")
                 if key in self.meta
             ),
@@ -249,7 +253,7 @@ class AsyncDocument(ObjectBase, metaclass=AsyncIndexMeta):
             raise RequestError(400, message, error_docs)
         if missing_docs:
             missing_ids = [doc["_id"] for doc in missing_docs]
-            message = f"Documents {', '.join(missing_ids)} not found."
+            message = "Documents %s not found." % ", ".join(missing_ids)
             raise NotFoundError(404, message, {"docs": missing_docs})
         return objs
 
@@ -294,7 +298,7 @@ class AsyncDocument(ObjectBase, metaclass=AsyncIndexMeta):
             ``[]``, ``{}``) to be left on the document. Those values will be
             stripped out otherwise as they make no difference in opensearch.
         """
-        d = super().to_dict(skip_empty)
+        d = super(AsyncDocument, self).to_dict(skip_empty)
         if not include_meta:
             return d
 
@@ -315,7 +319,7 @@ class AsyncDocument(ObjectBase, metaclass=AsyncIndexMeta):
         detect_noop: Optional[bool] = True,
         doc_as_upsert: Optional[bool] = False,
         refresh: Optional[bool] = False,
-        retry_on_conflict: Optional[int] = None,
+        retry_on_conflict: Optional[bool] = None,
         script: Any = None,
         script_id: Optional[str] = None,
         scripted_upsert: Optional[bool] = False,

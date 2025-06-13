@@ -1,0 +1,240 @@
+.recommendation-bubbles {
+  margin: 16px 0;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+  border-radius: 12px;
+  border: 1px solid #e1e5f0;
+}
+
+.bubbles-header {
+  margin-bottom: 12px;
+}
+
+.bubbles-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.refresh-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.refresh-indicator {
+  font-size: 11px;
+  color: #68d391;
+  font-weight: 500;
+  opacity: 0.8;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 0.8; }
+}
+
+.bubbles-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.refresh-button {
+  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(66, 153, 225, 0.2);
+}
+
+.refresh-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(66, 153, 225, 0.3);
+  background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+}
+
+.refresh-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(66, 153, 225, 0.2);
+}
+
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
+  font-size: 14px;
+  color: white;
+}
+
+.refresh-spinner {
+  font-size: 16px;
+  color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.user-context {
+  font-size: 12px;
+  color: #718096;
+  font-style: italic;
+  display: block;
+}
+
+.bubbles-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.recommendation-bubble {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+  line-height: 1.2;
+}
+
+.recommendation-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+.recommendation-bubble:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.loading-bubbles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.bubble-skeleton {
+  height: 40px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f7fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 20px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .bubbles-container,
+  .loading-bubbles {
+    grid-template-columns: 1fr;
+  }
+  
+  .recommendation-bubble {
+    font-size: 12px;
+    padding: 8px 14px;
+    min-height: 36px;
+  }
+  
+  .recommendation-bubbles {
+    margin: 12px 0;
+    padding: 12px;
+  }
+
+  .refresh-button {
+    width: 28px;
+    height: 28px;
+  }
+
+  .refresh-icon {
+    font-size: 12px;
+  }
+
+  .refresh-spinner {
+    font-size: 14px;
+  }
+
+  .refresh-indicator {
+    font-size: 10px;
+  }
+
+  .refresh-section {
+    gap: 6px;
+  }
+}
+
+/* Animation for when bubbles appear */
+.recommendation-bubble {
+  animation: bubbleAppear 0.3s ease-out;
+}
+
+.recommendation-bubble:nth-child(1) { animation-delay: 0.1s; }
+.recommendation-bubble:nth-child(2) { animation-delay: 0.2s; }
+.recommendation-bubble:nth-child(3) { animation-delay: 0.3s; }
+.recommendation-bubble:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes bubbleAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Refresh button pulse effect when new recommendations are available */
+.refresh-button.has-new-recommendations {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 2px 4px rgba(66, 153, 225, 0.2);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+  }
+  100% {
+    box-shadow: 0 2px 4px rgba(66, 153, 225, 0.2);
+  }
+}

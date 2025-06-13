@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -27,6 +28,7 @@
 
 import asyncio
 import logging
+import sys
 from itertools import chain
 from typing import Any, Collection, Mapping, Optional, Type, Union
 
@@ -74,7 +76,6 @@ class AsyncTransport(Transport):
         serializers: Any = None,
         default_mimetype: str = "application/json",
         max_retries: int = 3,
-        pool_maxsize: Optional[int] = None,
         retry_on_status: Any = (502, 503, 504),
         retry_on_timeout: bool = False,
         send_get_body_as: str = "GET",
@@ -103,8 +104,6 @@ class AsyncTransport(Transport):
         :arg default_mimetype: when no mimetype is specified by the server
             response assume this mimetype, defaults to `'application/json'`
         :arg max_retries: maximum number of retries before an exception is propagated
-        :arg pool_maxsize: Maximum connection pool size used by pool-manager
-            For custom connection-pooling on current session
         :arg retry_on_status: set of HTTP status codes on which we should retry
             on a different node. defaults to ``(502, 503, 504)``
         :arg retry_on_timeout: should timeout trigger a retry on different
@@ -124,7 +123,7 @@ class AsyncTransport(Transport):
         self._async_init_called = False
         self._sniff_on_start_event: Optional[asyncio.Event] = None
 
-        super().__init__(
+        super(AsyncTransport, self).__init__(
             hosts=[],
             connection_class=connection_class,
             connection_pool_class=connection_pool_class,
@@ -137,7 +136,6 @@ class AsyncTransport(Transport):
             serializers=serializers,
             default_mimetype=default_mimetype,
             max_retries=max_retries,
-            pool_maxsize=pool_maxsize,
             retry_on_status=retry_on_status,
             retry_on_timeout=retry_on_timeout,
             send_get_body_as=send_get_body_as,
@@ -254,10 +252,13 @@ class AsyncTransport(Transport):
         done: Any = ()
         try:
             while tasks:
+                # The 'loop' keyword is deprecated in 3.8+ so don't
+                # pass it to asyncio.wait() unless we're on <=3.7
+                wait_kwargs = {"loop": self.loop} if sys.version_info < (3, 8) else {}
 
                 # execute sniff requests in parallel, wait for first to return
                 done, tasks = await asyncio.wait(
-                    tasks, return_when=asyncio.FIRST_COMPLETED
+                    tasks, return_when=asyncio.FIRST_COMPLETED, **wait_kwargs
                 )
                 # go through all the finished tasks
                 for t in done:
@@ -375,13 +376,11 @@ class AsyncTransport(Transport):
             underlying :class:`~opensearchpy.Connection` class for serialization
         :arg body: body of the request, will be serialized using serializer and
             passed to the connection
-        :arg timeout: timeout of the request. If it is not presented as argument
-            will be extracted from `params`
         """
         await self._async_call()
 
         method, params, body, ignore, timeout = self._resolve_request_args(
-            method, params, body, ignore, timeout
+            method, params, body
         )
 
         for attempt in range(self.max_retries + 1):

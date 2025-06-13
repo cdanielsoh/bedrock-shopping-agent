@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -13,7 +14,7 @@ from opensearchpy.client.utils import _normalize_hosts
 from opensearchpy.transport import Transport
 
 
-class Client:
+class Client(object):
     """
     A generic async OpenSearch client.
     """

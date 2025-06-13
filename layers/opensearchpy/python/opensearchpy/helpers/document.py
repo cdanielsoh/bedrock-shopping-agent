@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -28,6 +29,8 @@ import collections.abc as collections_abc
 from fnmatch import fnmatch
 from typing import Any, Tuple, Type
 
+from six import add_metaclass, iteritems
+
 from opensearchpy.connection.connections import get_connection
 from opensearchpy.exceptions import NotFoundError, RequestError
 
@@ -39,7 +42,7 @@ from .search import Search
 from .utils import DOC_META_FIELDS, META_FIELDS, ObjectBase, merge
 
 
-class MetaField:
+class MetaField(object):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.args, self.kwargs = args, kwargs
 
@@ -53,7 +56,7 @@ class DocumentMeta(type):
     ) -> Any:
         # DocumentMeta filters attrs in place
         attrs["_doc_type"] = DocumentOptions(name, bases, attrs)
-        return super().__new__(cls, name, bases, attrs)
+        return super(DocumentMeta, cls).__new__(cls, name, bases, attrs)
 
 
 class IndexMeta(DocumentMeta):
@@ -67,7 +70,7 @@ class IndexMeta(DocumentMeta):
         bases: Tuple[Type[ObjectBase]],
         attrs: Any,
     ) -> Any:
-        new_cls = super().__new__(cls, name, bases, attrs)
+        new_cls = super(IndexMeta, cls).__new__(cls, name, bases, attrs)
         if cls._document_initialized:
             index_opts = attrs.pop("Index", None)
             index = cls.construct_index(index_opts, bases)
@@ -94,7 +97,7 @@ class IndexMeta(DocumentMeta):
         return i
 
 
-class DocumentOptions:
+class DocumentOptions(object):
     def __init__(
         self,
         name: str,
@@ -107,7 +110,7 @@ class DocumentOptions:
         self.mapping = getattr(meta, "mapping", Mapping())
 
         # register all declared fields into the mapping
-        for name, value in list(attrs.items()):
+        for name, value in list(iteritems(attrs)):
             if isinstance(value, Field):
                 self.mapping.field(name, value)
                 del attrs[name]
@@ -128,7 +131,8 @@ class DocumentOptions:
         return self.mapping.properties.name
 
 
-class InnerDoc(ObjectBase, metaclass=DocumentMeta):
+@add_metaclass(DocumentMeta)
+class InnerDoc(ObjectBase):
     """
     Common class for inner documents like Object or Nested
     """
@@ -137,10 +141,11 @@ class InnerDoc(ObjectBase, metaclass=DocumentMeta):
     def from_opensearch(cls, data: Any, data_only: bool = False) -> Any:
         if data_only:
             data = {"_source": data}
-        return super().from_opensearch(data)
+        return super(InnerDoc, cls).from_opensearch(data)
 
 
-class Document(ObjectBase, metaclass=IndexMeta):
+@add_metaclass(IndexMeta)
+class Document(ObjectBase):
     """
     Model-like class for persisting documents in opensearch.
     """
@@ -188,7 +193,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
         return "{}({})".format(
             self.__class__.__name__,
             ", ".join(
-                f"{key}={getattr(self.meta, key)!r}"
+                "{}={!r}".format(key, getattr(self.meta, key))
                 for key in ("index", "id")
                 if key in self.meta
             ),
@@ -310,7 +315,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
             raise RequestError(400, message, error_docs)
         if missing_docs:
             missing_ids = [doc["_id"] for doc in missing_docs]
-            message = f"Documents {', '.join(missing_ids)} not found."
+            message = "Documents %s not found." % ", ".join(missing_ids)
             raise NotFoundError(404, message, {"docs": missing_docs})
         return objs
 
@@ -349,7 +354,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
             ``[]``, ``{}``) to be left on the document. Those values will be
             stripped out otherwise as they make no difference in opensearch.
         """
-        d = super().to_dict(skip_empty=skip_empty)
+        d = super(Document, self).to_dict(skip_empty=skip_empty)
         if not include_meta:
             return d
 
@@ -370,7 +375,7 @@ class Document(ObjectBase, metaclass=IndexMeta):
         detect_noop: bool = True,
         doc_as_upsert: bool = False,
         refresh: bool = False,
-        retry_on_conflict: int = 0,
+        retry_on_conflict: Any = None,
         script: Any = None,
         script_id: Any = None,
         scripted_upsert: bool = False,

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -85,7 +86,6 @@ class AIOHttpConnection(AsyncConnection):
         client_cert: Any = None,
         client_key: Any = None,
         ssl_version: Any = None,
-        ssl_assert_hostname: bool = True,
         ssl_assert_fingerprint: Any = None,
         maxsize: Optional[int] = 10,
         headers: Any = None,
@@ -94,7 +94,7 @@ class AIOHttpConnection(AsyncConnection):
         opaque_id: Optional[str] = None,
         loop: Any = None,
         trust_env: Optional[bool] = False,
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
         """
         Default connection class for ``AsyncOpenSearch`` using the `aiohttp` library and the http protocol.
@@ -138,11 +138,10 @@ class AIOHttpConnection(AsyncConnection):
             url_prefix=url_prefix,
             timeout=timeout,
             use_ssl=use_ssl,
-            maxsize=maxsize,
             headers=headers,
             http_compress=http_compress,
             opaque_id=opaque_id,
-            **kwargs,
+            **kwargs
         )
 
         if http_auth is not None:
@@ -179,7 +178,7 @@ class AIOHttpConnection(AsyncConnection):
 
             if verify_certs:
                 ssl_context.verify_mode = ssl.CERT_REQUIRED
-                ssl_context.check_hostname = ssl_assert_hostname
+                ssl_context.check_hostname = True
             else:
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
@@ -221,10 +220,6 @@ class AIOHttpConnection(AsyncConnection):
         self.loop = loop
         self.session = None
 
-        # Align with Sync Interface
-        if "pool_maxsize" in kwargs:
-            maxsize = kwargs.pop("pool_maxsize")
-
         # Parameters for creating an aiohttp.ClientSession later.
         self._limit = maxsize
         self._http_auth = http_auth
@@ -252,6 +247,14 @@ class AIOHttpConnection(AsyncConnection):
         else:
             query_string = ""
 
+        # There is a bug in aiohttp that disables the re-use
+        # of the connection in the pool when method=HEAD.
+        # See: aio-libs/aiohttp#1769
+        is_head = False
+        if method == "HEAD":
+            method = "GET"
+            is_head = True
+
         # Top-tier tip-toeing happening here. Basically
         # because Pip's old resolver is bad and wipes out
         # strict pins in favor of non-strict pins of extras
@@ -274,7 +277,7 @@ class AIOHttpConnection(AsyncConnection):
         else:
             url = self.url_prefix + url
             if query_string:
-                url = f"{url}?{query_string}"
+                url = "%s?%s" % (url, query_string)
             url = self.host + url
 
         timeout = aiohttp.ClientTimeout(
@@ -299,7 +302,11 @@ class AIOHttpConnection(AsyncConnection):
                 timeout=timeout,
                 fingerprint=self.ssl_assert_fingerprint,
             ) as response:
-                raw_data = await response.text()
+                if is_head:  # We actually called 'GET' so throw away the data.
+                    await response.release()
+                    raw_data = ""
+                else:
+                    raw_data = await response.text()
                 duration = self.loop.time() - start
 
         # We want to reraise a cancellation or recursion error.
@@ -355,7 +362,6 @@ class AIOHttpConnection(AsyncConnection):
         """
         if self.session:
             await self.session.close()
-            self.session = None
 
     async def _create_aiohttp_session(self) -> Any:
         """Creates an aiohttp.ClientSession(). This is delayed until

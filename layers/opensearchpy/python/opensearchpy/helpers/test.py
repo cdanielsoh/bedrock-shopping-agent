@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -34,7 +35,7 @@ import opensearchpy.client
 from opensearchpy import OpenSearch
 from opensearchpy.exceptions import ConnectionError
 
-OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "https://localhost:9200")
+OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "https://admin:admin@localhost:9200")
 
 
 def get_test_client(nowait: bool = False, **kwargs: Any) -> OpenSearch:
@@ -105,11 +106,10 @@ def opensearch_version(client: opensearchpy.client.OpenSearch) -> Any:
 if "OPENSEARCH_VERSION" in os.environ:
     OPENSEARCH_VERSION = _get_version(os.environ["OPENSEARCH_VERSION"])
 else:
-    OPENSEARCH_VERSION = opensearch_version(
-        get_test_client(
-            verify_certs=False,
-            http_auth=("admin", os.getenv("OPENSEARCH_PASSWORD", "admin")),
-        )
+    client = OpenSearch(
+        OPENSEARCH_URL,
+        verify_certs=False,
     )
+    OPENSEARCH_VERSION = opensearch_version(client)
 
 __all__ = ["OpenSearchTestCase"]

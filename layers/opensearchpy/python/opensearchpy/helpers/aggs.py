@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -32,9 +33,7 @@ from .response.aggs import AggResponse, BucketData, FieldBucketData, TopHitsData
 from .utils import DslBase
 
 
-def A(  # pylint: disable=invalid-name
-    name_or_agg: Any, filter: Any = None, **params: Any
-) -> Any:
+def A(name_or_agg: Any, filter: Any = None, **params: Any) -> Any:
     if filter is not None:
         if name_or_agg != "filter":
             raise ValueError(
@@ -89,7 +88,7 @@ class Agg(DslBase):
         return False
 
     def to_dict(self) -> Any:
-        d = super().to_dict()
+        d = super(Agg, self).to_dict()
         if "meta" in d[self.name]:
             d["meta"] = d[self.name].pop("meta")
         return d
@@ -98,7 +97,7 @@ class Agg(DslBase):
         return AggResponse(self, search, data)
 
 
-class AggBase:
+class AggBase(object):
     _param_defs = {
         "aggs": {"type": "agg", "hash": True},
     }
@@ -151,7 +150,7 @@ class AggBase:
 
 class Bucket(AggBase, Agg):
     def __init__(self, **params: Any) -> None:
-        super().__init__(**params)
+        super(Bucket, self).__init__(**params)
         # remember self for chaining
         self._base = self
 
@@ -172,10 +171,10 @@ class Filter(Bucket):
     def __init__(self, filter: Any = None, **params: Any) -> None:
         if filter is not None:
             params["filter"] = filter
-        super().__init__(**params)
+        super(Filter, self).__init__(**params)
 
     def to_dict(self) -> Any:
-        d = super().to_dict()
+        d = super(Filter, self).to_dict()
         d[self.name].update(d[self.name].pop("filter", {}))
         return d
 
@@ -306,10 +305,6 @@ class VariableWidthHistogram(Bucket):
 
     def result(self, search: Any, data: Any) -> Any:
         return FieldBucketData(self, search, data)
-
-
-class MultiTerms(Bucket):
-    name = "multi_terms"
 
 
 # metric aggregations

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -26,19 +27,21 @@
 
 from typing import Any, Optional
 
+import six
+
 from opensearchpy.connection.connections import get_connection
 
 from .utils import AttrDict, DslBase, merge
 
 
-class AnalysisBase:
+class AnalysisBase(object):
     @classmethod
     def _type_shortcut(
         cls: Any, name_or_instance: Any, type: Any = None, **kwargs: Any
     ) -> Any:
         if isinstance(name_or_instance, cls):
             if type or kwargs:
-                raise ValueError(f"{cls.__name__}() cannot accept parameters.")
+                raise ValueError("%s() cannot accept parameters." % cls.__name__)
             return name_or_instance
 
         if not (type or kwargs):
@@ -49,7 +52,7 @@ class AnalysisBase:
         )
 
 
-class CustomAnalysis:
+class CustomAnalysis(object):
     name: Optional[str] = "custom"
 
     def __init__(
@@ -57,14 +60,14 @@ class CustomAnalysis:
     ) -> None:
         self._builtin_type = builtin_type
         self._name = filter_name
-        super().__init__(**kwargs)
+        super(CustomAnalysis, self).__init__(**kwargs)
 
     def to_dict(self) -> Any:
         # only name to present in lists
         return self._name
 
     def get_definition(self) -> Any:
-        d = super().to_dict()  # type: ignore
+        d = super(CustomAnalysis, self).to_dict()  # type: ignore
         d = d.pop(self.name)
         d["type"] = self._builtin_type
         return d
@@ -104,12 +107,12 @@ class CustomAnalysisDefinition(CustomAnalysis):
         return out
 
 
-class BuiltinAnalysis:
+class BuiltinAnalysis(object):
     name: Optional[str] = "builtin"
 
     def __init__(self, name: Any) -> None:
         self._name = name
-        super().__init__()
+        super(BuiltinAnalysis, self).__init__()
 
     def to_dict(self) -> Any:
         # only name to present in lists
@@ -166,7 +169,7 @@ class CustomAnalyzer(CustomAnalysisDefinition, Analyzer):
             sec_def = definition.get(section, {})
             sec_names = analyzer_def[section]
 
-            if isinstance(sec_names, str):
+            if isinstance(sec_names, six.string_types):
                 body[section] = sec_def.get(sec_names, sec_names)
             else:
                 body[section] = [
@@ -231,13 +234,9 @@ class MultiplexerTokenFilter(CustomTokenFilter):
         if "filters" in d:
             d["filters"] = [
                 # comma delimited string given by user
-                (
-                    fs
-                    if isinstance(fs, str)
-                    else
-                    # list of strings or TokenFilter objects
-                    ", ".join(f.to_dict() if hasattr(f, "to_dict") else f for f in fs)
-                )
+                fs if isinstance(fs, six.string_types) else
+                # list of strings or TokenFilter objects
+                ", ".join(f.to_dict() if hasattr(f, "to_dict") else f for f in fs)
                 for fs in self.filters
             ]
         return d
@@ -249,7 +248,7 @@ class MultiplexerTokenFilter(CustomTokenFilter):
         fs: Any = {}
         d = {"filter": fs}
         for filters in self.filters:
-            if isinstance(filters, str):
+            if isinstance(filters, six.string_types):
                 continue
             fs.update(
                 {

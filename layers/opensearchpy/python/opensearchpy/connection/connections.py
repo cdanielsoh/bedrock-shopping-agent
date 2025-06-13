@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -26,11 +27,13 @@
 
 from typing import Any
 
+from six import string_types
+
 import opensearchpy
 from opensearchpy.serializer import serializer
 
 
-class Connections:
+class Connections(object):
     """
     Class responsible for holding connections to different clusters. Used as a
     singleton in this module.
@@ -82,7 +85,7 @@ class Connections:
                 errors += 1
 
         if errors == 2:
-            raise KeyError(f"There is no connection with alias {alias!r}.")
+            raise KeyError("There is no connection with alias %r." % alias)
 
     def create_connection(self, alias: str = "default", **kwargs: Any) -> Any:
         """
@@ -104,7 +107,7 @@ class Connections:
         """
         # do not check isinstance(OpenSearch) so that people can wrap their
         # clients
-        if not isinstance(alias, str):
+        if not isinstance(alias, string_types):
             return alias
 
         # connection already established
@@ -118,7 +121,7 @@ class Connections:
             return self.create_connection(alias, **self._kwargs[alias])
         except KeyError:
             # no connection and no kwargs to set one up
-            raise KeyError(f"There is no connection with alias {alias!r}.")
+            raise KeyError("There is no connection with alias %r." % alias)
 
 
 connections = Connections()

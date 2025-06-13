@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -11,12 +12,14 @@ import collections.abc as collections_abc
 from itertools import chain
 from typing import Any
 
+from six import iteritems
+
 from opensearchpy.connection.async_connections import get_connection
 from opensearchpy.helpers.field import Nested, Text
 from opensearchpy.helpers.mapping import META_FIELDS, Properties
 
 
-class AsyncMapping:
+class AsyncMapping(object):
     _meta: Any
     properties: Properties
 
@@ -102,11 +105,11 @@ class AsyncMapping:
         self._update_from_dict(raw["mappings"])
 
     def _update_from_dict(self, raw: Any) -> None:
-        for name, definition in raw.get("properties", {}).items():
+        for name, definition in iteritems(raw.get("properties", {})):
             self.field(name, definition)
 
         # metadata like _all etc
-        for name, value in raw.items():
+        for name, value in iteritems(raw):
             if name != "properties":
                 if isinstance(value, collections_abc.Mapping):
                     self.meta(name, **value)

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -9,12 +10,14 @@
 
 from typing import Any
 
+from six import string_types
+
 import opensearchpy
 from opensearchpy._async.helpers.actions import aiter
 from opensearchpy.serializer import serializer
 
 
-class AsyncConnections:
+class AsyncConnections(object):
     _conns: Any
 
     """
@@ -68,7 +71,7 @@ class AsyncConnections:
                 errors += 1
 
         if errors == 2:
-            raise KeyError(f"There is no connection with alias {alias!r}.")
+            raise KeyError("There is no connection with alias %r." % alias)
 
     async def create_connection(self, alias: str = "default", **kwargs: Any) -> Any:
         """
@@ -90,7 +93,7 @@ class AsyncConnections:
         """
         # do not check isinstance(AsyncOpenSearch) so that people can wrap their
         # clients
-        if not isinstance(alias, str):
+        if not isinstance(alias, string_types):
             return alias
 
         # connection already established
@@ -104,7 +107,7 @@ class AsyncConnections:
             return await self.create_connection(alias, **self._kwargs[alias])
         except KeyError:
             # no connection and no kwargs to set one up
-            raise KeyError(f"There is no connection with alias {alias!r}.")
+            raise KeyError("There is no connection with alias %r." % alias)
 
 
 async_connections = AsyncConnections()

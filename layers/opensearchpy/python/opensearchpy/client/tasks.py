@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -25,13 +26,14 @@
 #  under the License.
 
 
-# ------------------------------------------------------------------------------------------
-# THIS CODE IS AUTOMATICALLY GENERATED AND MANUAL EDITS WILL BE LOST
+# ----------------------------------------------------
+# THIS CODE IS GENERATED AND MANUAL EDITS WILL BE LOST.
 #
-# To contribute, kindly make modifications in the opensearch-py client generator
-# or in the OpenSearch API specification, and run `nox -rs generate`. See DEVELOPER_GUIDE.md
-# and https://github.com/opensearch-project/opensearch-api-specification for details.
-# -----------------------------------------------------------------------------------------+
+# To contribute, kindly make essential modifications through either the "opensearch-py client generator":
+# https://github.com/opensearch-project/opensearch-py/blob/main/utils/generate-api.py
+# or the "OpenSearch API specification" available at:
+# https://github.com/opensearch-project/opensearch-api-specification/blob/main/OpenSearch.openapi.json
+# -----------------------------------------------------
 
 
 import warnings
@@ -44,14 +46,9 @@ class TasksClient(NamespacedClient):
     @query_params(
         "actions",
         "detailed",
-        "error_trace",
-        "filter_path",
         "group_by",
-        "human",
         "nodes",
         "parent_task_id",
-        "pretty",
-        "source",
         "timeout",
         "wait_for_completion",
     )
@@ -64,52 +61,27 @@ class TasksClient(NamespacedClient):
         Returns a list of tasks.
 
 
-        :arg actions: Comma-separated list or wildcard expression of
-            actions used to limit the request.
-        :arg detailed: If `true`, the response includes detailed
-            information about shard recoveries. Default is false.
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg group_by: Key used to group tasks in the response. Valid
-            choices are nodes, none, parents.
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
+        :arg actions: Comma-separated list of actions that should be
+            returned. Leave empty to return all.
+        :arg detailed: Return detailed task information. Default is
+            false.
+        :arg group_by: Group tasks by nodes or parent/child
+            relationships. Valid choices are nodes, parents, none.
         :arg nodes: Comma-separated list of node IDs or names to limit
             the returned information; use `_local` to return information from the
             node you're connecting to, leave empty to get information from all
             nodes.
-        :arg parent_task_id: Parent task ID used to limit returned
-            information. To return all tasks, omit this parameter or use a value of
-            `-1`.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
-        :arg timeout: Period to wait for a response. If no response is
-            received before the timeout expires, the request fails and returns an
-            error.
-        :arg wait_for_completion: If `true`, the request blocks until
-            the operation is complete. Default is false.
+        :arg parent_task_id: Return tasks with specified parent task id
+            (node_id:task_number). Set to -1 to return all.
+        :arg timeout: Operation timeout.
+        :arg wait_for_completion: Should this request wait until the
+            operation has completed before returning. Default is false.
         """
         return self.transport.perform_request(
             "GET", "/_tasks", params=params, headers=headers
         )
 
-    @query_params(
-        "actions",
-        "error_trace",
-        "filter_path",
-        "human",
-        "nodes",
-        "parent_task_id",
-        "pretty",
-        "source",
-        "wait_for_completion",
-    )
+    @query_params("actions", "nodes", "parent_task_id", "wait_for_completion")
     def cancel(
         self,
         task_id: Any = None,
@@ -120,27 +92,18 @@ class TasksClient(NamespacedClient):
         Cancels a task, if it can be cancelled through an API.
 
 
-        :arg task_id: ID of the task.
-        :arg actions: Comma-separated list or wildcard expression of
-            actions used to limit the request.
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
-        :arg nodes: Comma-separated list of node IDs or names used to
-            limit the request.
-        :arg parent_task_id: Parent task ID used to limit the tasks.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
-        :arg wait_for_completion: Should the request block until the
-            cancellation of the task and its descendant tasks is completed. Defaults
-            to false Default is false.
+        :arg task_id: Cancel the task with specified task id
+            (node_id:task_number).
+        :arg actions: Comma-separated list of actions that should be
+            cancelled. Leave empty to cancel all.
+        :arg nodes: Comma-separated list of node IDs or names to limit
+            the returned information; use `_local` to return information from the
+            node you're connecting to, leave empty to get information from all
+            nodes.
+        :arg parent_task_id: Cancel tasks with specified parent task id
+            (node_id:task_number). Set to -1 to cancel all.
+        :arg wait_for_completion: Should this request wait until the
+            operation has completed before returning. Default is false.
         """
         return self.transport.perform_request(
             "POST",
@@ -149,15 +112,7 @@ class TasksClient(NamespacedClient):
             headers=headers,
         )
 
-    @query_params(
-        "error_trace",
-        "filter_path",
-        "human",
-        "pretty",
-        "source",
-        "timeout",
-        "wait_for_completion",
-    )
+    @query_params("timeout", "wait_for_completion")
     def get(
         self,
         task_id: Any = None,
@@ -168,24 +123,11 @@ class TasksClient(NamespacedClient):
         Returns information about a task.
 
 
-        :arg task_id: ID of the task.
-        :arg error_trace: Whether to include the stack trace of returned
-            errors. Default is false.
-        :arg filter_path: Used to reduce the response. This parameter
-            takes a comma-separated list of filters. It supports using wildcards to
-            match any field or part of a field’s name. You can also exclude fields
-            with "-".
-        :arg human: Whether to return human readable values for
-            statistics. Default is True.
-        :arg pretty: Whether to pretty format the returned JSON
-            response. Default is false.
-        :arg source: The URL-encoded request definition. Useful for
-            libraries that do not accept a request body for non-POST requests.
-        :arg timeout: Period to wait for a response. If no response is
-            received before the timeout expires, the request fails and returns an
-            error.
-        :arg wait_for_completion: If `true`, the request blocks until
-            the task has completed. Default is false.
+        :arg task_id: Return the task with specified id
+            (node_id:task_number).
+        :arg timeout: Operation timeout.
+        :arg wait_for_completion: Should this request wait until the
+            operation has completed before returning. Default is false.
         """
         if task_id in SKIP_IN_PATH:
             warnings.warn(

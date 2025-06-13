@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -31,7 +32,7 @@ class AsyncUpdateByQuery(Request):
         overridden by methods (`using`, `index` and `doc_type` respectively).
 
         """
-        super().__init__(**kwargs)
+        super(AsyncUpdateByQuery, self).__init__(**kwargs)
         self._response_class = UpdateByQueryResponse
         self._script: Any = {}
         self._query_proxy = QueryProxy(self, "query")
@@ -70,7 +71,7 @@ class AsyncUpdateByQuery(Request):
         of all the underlying objects. Used internally by most state modifying
         APIs.
         """
-        ubq = super()._clone()
+        ubq = super(AsyncUpdateByQuery, self)._clone()
 
         ubq._response_class = self._response_class
         ubq._script = self._script.copy()

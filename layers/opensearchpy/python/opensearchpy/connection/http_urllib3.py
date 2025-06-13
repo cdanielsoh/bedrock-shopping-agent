@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -33,8 +34,6 @@ import urllib3
 from urllib3.exceptions import ReadTimeoutError
 from urllib3.exceptions import SSLError as UrllibSSLError
 from urllib3.util.retry import Retry
-
-from opensearchpy.metrics import Metrics, MetricsNone
 
 from ..compat import reraise_exceptions, urlencode
 from ..exceptions import (
@@ -96,9 +95,6 @@ class Urllib3HttpConnection(Connection):
     :arg http_compress: Use gzip compression
     :arg opaque_id: Send this value in the 'X-Opaque-Id' HTTP header
         For tracing all requests made by this transport.
-    :arg metrics: metrics is an instance of a subclass of the
-        :class:`~opensearchpy.Metrics` class, used for collecting
-        and reporting metrics related to the client's operations;
     """
 
     def __init__(
@@ -120,21 +116,19 @@ class Urllib3HttpConnection(Connection):
         ssl_context: Any = None,
         http_compress: Any = None,
         opaque_id: Any = None,
-        metrics: Metrics = MetricsNone(),
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
-        self.metrics = metrics
         # Initialize headers before calling super().__init__().
         self.headers = urllib3.make_headers(keep_alive=True)
 
-        super().__init__(
+        super(Urllib3HttpConnection, self).__init__(
             host=host,
             port=port,
             use_ssl=use_ssl,
             headers=headers,
             http_compress=http_compress,
             opaque_id=opaque_id,
-            **kwargs,
+            **kwargs
         )
 
         self.http_auth = http_auth
@@ -221,13 +215,9 @@ class Urllib3HttpConnection(Connection):
         if pool_maxsize and isinstance(pool_maxsize, int):
             kw["maxsize"] = pool_maxsize
 
-        self._urllib3_pool_factory = lambda: pool_class(
+        self.pool = pool_class(
             self.hostname, port=self.port, timeout=self.timeout, **kw
         )
-        self._create_urllib3_pool()
-
-    def _create_urllib3_pool(self) -> None:
-        self.pool = self._urllib3_pool_factory()  # type: ignore
 
     def perform_request(
         self,
@@ -239,13 +229,9 @@ class Urllib3HttpConnection(Connection):
         ignore: Collection[int] = (),
         headers: Optional[Mapping[str, str]] = None,
     ) -> Any:
-        if self.pool is None:
-            self._create_urllib3_pool()
-        assert self.pool is not None
-
         url = self.url_prefix + url
         if params:
-            url = f"{url}?{urlencode(params)}"
+            url = "%s?%s" % (url, urlencode(params))
 
         full_url = self.host + url
 
@@ -275,8 +261,6 @@ class Urllib3HttpConnection(Connection):
                 if isinstance(self.http_auth, Callable):  # type: ignore
                     request_headers.update(self.http_auth(method, full_url, body))
 
-            self.metrics.request_start()
-
             response = self.pool.urlopen(
                 method, url, body, retries=Retry(False), headers=request_headers, **kw
             )
@@ -293,8 +277,6 @@ class Urllib3HttpConnection(Connection):
             if isinstance(e, ReadTimeoutError):
                 raise ConnectionTimeout("TIMEOUT", str(e), e)
             raise ConnectionError("N/A", str(e), e)
-        finally:
-            self.metrics.request_end()
 
         # raise warnings if any from the 'Warnings' header.
         warning_headers = response.headers.get_all("warning", ())
@@ -324,6 +306,4 @@ class Urllib3HttpConnection(Connection):
         """
         Explicitly closes connection
         """
-        if self.pool:
-            self.pool.close()
-            self.pool = None
+        self.pool.close()

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -38,7 +39,7 @@ from .exceptions import ImproperlyConfigured
 logger: logging.Logger = logging.getLogger("opensearch")
 
 
-class ConnectionSelector:
+class ConnectionSelector(object):
     """
     Simple class used to select a connection from a list of currently live
     connection instances. In init time it is passed a dictionary containing all
@@ -87,7 +88,7 @@ class RoundRobinSelector(ConnectionSelector):
     """
 
     def __init__(self, opts: Sequence[Tuple[Connection, Any]]) -> None:
-        super().__init__(opts)
+        super(RoundRobinSelector, self).__init__(opts)
         self.data = threading.local()
 
     def select(self, connections: Sequence[Connection]) -> Any:
@@ -96,7 +97,7 @@ class RoundRobinSelector(ConnectionSelector):
         return connections[self.data.rr]
 
 
-class ConnectionPool:
+class ConnectionPool(object):
     """
     Container holding the :class:`~opensearchpy.Connection` instances,
     managing the selection process (via a
@@ -135,7 +136,7 @@ class ConnectionPool:
         timeout_cutoff: int = 5,
         selector_class: Type[ConnectionSelector] = RoundRobinSelector,
         randomize_hosts: bool = True,
-        **kwargs: Any,
+        **kwargs: Any
     ) -> None:
         """
         :arg connections: list of tuples containing the
@@ -290,7 +291,7 @@ class ConnectionPool:
             conn.close()
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {self.connections!r}>"
+        return "<%s: %r>" % (type(self).__name__, self.connections)
 
 
 class DummyConnectionPool(ConnectionPool):

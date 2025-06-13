@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -13,12 +14,12 @@ from opensearchpy._async.helpers.mapping import AsyncMapping
 from opensearchpy._async.helpers.search import AsyncSearch
 from opensearchpy._async.helpers.update_by_query import AsyncUpdateByQuery
 from opensearchpy.connection.async_connections import get_connection
-from opensearchpy.exceptions import IllegalOperation, ValidationException
+from opensearchpy.exceptions import IllegalOperation
 from opensearchpy.helpers import analysis
 from opensearchpy.helpers.utils import merge
 
 
-class AsyncIndexTemplate:
+class AsyncIndexTemplate(object):
     def __init__(
         self,
         name: Any,
@@ -57,7 +58,7 @@ class AsyncIndexTemplate:
         )
 
 
-class AsyncIndex:
+class AsyncIndex(object):
     def __init__(self, name: Any, using: Any = "default") -> None:
         """
         :arg name: name of the index
@@ -259,7 +260,7 @@ class AsyncIndex:
             using=using or self._using, index=self._name, doc_type=self._doc_types
         )
 
-    def updateByQuery(self, using: Any = None) -> Any:  # pylint: disable=invalid-name
+    def updateByQuery(self, using: Any = None) -> Any:
         """
         Return a :class:`~opensearchpy.AsyncUpdateByQuery` object searching over the index
         (or all the indices belonging to this template) and updating Documents that match
@@ -305,18 +306,9 @@ class AsyncIndex:
         body = self.to_dict()
         settings = body.pop("settings", {})
         analysis = settings.pop("analysis", None)
-
-        # If _name points to an alias, the response object will contain keys with
-        # the index name(s) the alias points to. If the alias points to multiple
-        # indices, raise exception as the intention is ambiguous
-        settings_response = await self.get_settings(using=using)
-        if len(settings_response) > 1:
-            raise ValidationException(
-                "Settings for %s point to multiple indices: %s."
-                % (self._name, ", ".join(list(settings_response.keys())))
-            )
-        current_settings = settings_response.popitem()[1]["settings"]["index"]
-
+        current_settings = (await self.get_settings(using=using))[self._name][
+            "settings"
+        ]["index"]
         if analysis:
             if await self.is_closed(using=using):
                 # closed index, update away

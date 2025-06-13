@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -6,15 +7,16 @@
 #
 # Modifications Copyright OpenSearch Contributors. See
 # GitHub history for details.
-import asyncio
+
 import os
+import time
 from typing import Any
 from unittest import SkipTest
 
 from opensearchpy import AsyncOpenSearch
 from opensearchpy.exceptions import ConnectionError
 
-OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "https://localhost:9200")
+OPENSEARCH_URL = os.environ.get("OPENSEARCH_URL", "https://admin:admin@localhost:9200")
 
 
 async def get_test_client(nowait: bool = False, **kwargs: Any) -> Any:
@@ -36,7 +38,7 @@ async def get_test_client(nowait: bool = False, **kwargs: Any) -> Any:
             await client.cluster.health(wait_for_status="yellow")
             return client
         except ConnectionError:
-            await asyncio.sleep(0.1)
+            time.sleep(0.1)
     else:
         # timeout
         raise SkipTest("OpenSearch failed to start.")

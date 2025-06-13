@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -34,7 +35,7 @@ class Response(AttrDict):
     def __init__(self, search: Any, response: Any, doc_class: Any = None) -> None:
         super(AttrDict, self).__setattr__("_search", search)
         super(AttrDict, self).__setattr__("_doc_class", doc_class)
-        super().__init__(response)
+        super(Response, self).__init__(response)
 
     def __iter__(self) -> Any:
         return iter(self.hits)
@@ -43,7 +44,7 @@ class Response(AttrDict):
         if isinstance(key, (slice, int)):
             # for slicing etc
             return self.hits[key]
-        return super().__getitem__(key)
+        return super(Response, self).__getitem__(key)
 
     def __nonzero__(self) -> Any:
         return bool(self.hits)
@@ -103,14 +104,14 @@ class Response(AttrDict):
 class AggResponse(AttrDict):
     def __init__(self, aggs: Any, search: Any, data: Any) -> None:
         super(AttrDict, self).__setattr__("_meta", {"search": search, "aggs": aggs})
-        super().__init__(data)
+        super(AggResponse, self).__init__(data)
 
     def __getitem__(self, attr_name: Any) -> Any:
         if attr_name in self._meta["aggs"]:
             # don't do self._meta['aggs'][attr_name] to avoid copying
             agg = self._meta["aggs"].aggs[attr_name]
             return agg.result(self._meta["search"], self._d_[attr_name])
-        return super().__getitem__(attr_name)
+        return super(AggResponse, self).__getitem__(attr_name)
 
     def __iter__(self) -> Any:
         for name in self._meta["aggs"]:
@@ -121,7 +122,7 @@ class UpdateByQueryResponse(AttrDict):
     def __init__(self, search: Any, response: Any, doc_class: Any = None) -> None:
         super(AttrDict, self).__setattr__("_search", search)
         super(AttrDict, self).__setattr__("_doc_class", doc_class)
-        super().__init__(response)
+        super(UpdateByQueryResponse, self).__init__(response)
 
     def success(self) -> bool:
         return not self.timed_out and not self.failures

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -30,7 +31,7 @@ from typing import Any, Optional
 from .utils import DslBase
 
 
-def SF(name_or_sf: Any, **params: Any) -> Any:  # pylint: disable=invalid-name
+def SF(name_or_sf: Any, **params: Any) -> Any:
     # {"script_score": {"script": "_score"}, "filter": {}}
     if isinstance(name_or_sf, collections_abc.Mapping):
         if params:
@@ -48,7 +49,7 @@ def SF(name_or_sf: Any, **params: Any) -> Any:  # pylint: disable=invalid-name
         elif len(sf) == 1:
             name, params = sf.popitem()
         else:
-            raise ValueError(f"SF() got an unexpected fields in the dictionary: {sf!r}")
+            raise ValueError("SF() got an unexpected fields in the dictionary: %r" % sf)
 
         # boost factor special case, see https://github.com/elastic/elasticsearch/issues/6343
         if not isinstance(params, collections_abc.Mapping):
@@ -81,7 +82,7 @@ class ScoreFunction(DslBase):
     name: Optional[str] = None
 
     def to_dict(self) -> Any:
-        d = super().to_dict()
+        d = super(ScoreFunction, self).to_dict()
         # filter and query dicts should be at the same level as us
         for k in self._param_defs:
             if k in d[self.name]:
@@ -97,7 +98,7 @@ class BoostFactor(ScoreFunction):
     name = "boost_factor"
 
     def to_dict(self) -> Any:
-        d = super().to_dict()
+        d = super(BoostFactor, self).to_dict()
         if "value" in d[self.name]:
             d[self.name] = d[self.name].pop("value")
         else:

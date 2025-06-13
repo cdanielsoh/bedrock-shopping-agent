@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Apache-2.0
 #
 # The OpenSearch Contributors require contributions made to
@@ -8,7 +9,9 @@
 # GitHub history for details.
 
 import copy
-from typing import Any, Dict, Sequence, cast
+from typing import Any, Sequence
+
+from six import iteritems, string_types
 
 from opensearchpy._async.helpers.actions import aiter, async_scan
 from opensearchpy.connection.async_connections import get_connection
@@ -35,11 +38,10 @@ class AsyncSearch(Request):
         All the parameters supplied (or omitted) at creation type can be later
         overridden by methods (`using`, `index` and `doc_type` respectively).
         """
-        super().__init__(**kwargs)
+        super(AsyncSearch, self).__init__(**kwargs)
 
         self.aggs = AggsProxy(self)
         self._sort: Sequence[Any] = []
-        self._collapse: Dict[str, Any] = {}
         self._source: Any = None
         self._highlight: Any = {}
         self._highlight_opts: Any = {}
@@ -112,13 +114,13 @@ class AsyncSearch(Request):
         s.update_from_dict(d)
         return s
 
-    def _clone(self) -> "AsyncSearch":
+    def _clone(self) -> Any:
         """
         Return a clone of the current search request. Performs a shallow copy
         of all the underlying objects. Used internally by most state modifying
         APIs.
         """
-        s = cast(AsyncSearch, super()._clone())
+        s = super(AsyncSearch, self)._clone()
 
         s._response_class = self._response_class
         s._sort = self._sort[:]
@@ -127,7 +129,6 @@ class AsyncSearch(Request):
         s._highlight_opts = self._highlight_opts.copy()
         s._suggest = self._suggest.copy()
         s._script_fields = self._script_fields.copy()
-        s._collapse = self._collapse.copy()
         for x in ("query", "post_filter"):
             getattr(s, x)._proxied = getattr(self, x)._proxied
 
@@ -158,7 +159,7 @@ class AsyncSearch(Request):
         aggs = d.pop("aggs", d.pop("aggregations", {}))
         if aggs:
             self.aggs._params = {
-                "aggs": {name: A(value) for (name, value) in aggs.items()}
+                "aggs": {name: A(value) for (name, value) in iteritems(aggs)}
             }
         if "sort" in d:
             self._sort = d.pop("sort")
@@ -200,7 +201,7 @@ class AsyncSearch(Request):
         """
         s = self._clone()
         for name in kwargs:
-            if isinstance(kwargs[name], str):
+            if isinstance(kwargs[name], string_types):
                 kwargs[name] = {"script": kwargs[name]}
         s._script_fields.update(kwargs)
         return s
@@ -276,39 +277,11 @@ class AsyncSearch(Request):
         s = self._clone()
         s._sort = []
         for k in keys:
-            if isinstance(k, str) and k.startswith("-"):
+            if isinstance(k, string_types) and k.startswith("-"):
                 if k[1:] == "_score":
                     raise IllegalOperation("Sorting by `-_score` is not allowed.")
                 k = {k[1:]: {"order": "desc"}}
             s._sort.append(k)
-        return s
-
-    def collapse(
-        self,
-        field: Any = None,
-        inner_hits: Any = None,
-        max_concurrent_group_searches: Any = None,
-    ) -> "AsyncSearch":
-        """
-        Add collapsing information to the search request.
-
-        If called without providing ``field``, it will remove all collapse
-        requirements, otherwise it will replace them with the provided
-        arguments.
-
-        The API returns a copy of the AsyncSearch object and can thus be chained.
-        """
-        s = self._clone()
-        s._collapse = {}
-
-        if field is None:
-            return s
-
-        s._collapse["field"] = field
-        if inner_hits:
-            s._collapse["inner_hits"] = inner_hits
-        if max_concurrent_group_searches:
-            s._collapse["max_concurrent_group_searches"] = max_concurrent_group_searches
         return s
 
     def highlight_options(self, **kwargs: Any) -> Any:
@@ -406,9 +379,6 @@ class AsyncSearch(Request):
             if self._sort:
                 d["sort"] = self._sort
 
-            if self._collapse:
-                d["collapse"] = self._collapse
-
             d.update(recursive_to_dict(self._extra))
 
             if self._source not in (None, {}):
@@ -501,7 +471,7 @@ class AsyncMultiSearch(Request):
     """
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
+        super(AsyncMultiSearch, self).__init__(**kwargs)
         self._searches: Any = []
 
     def __getitem__(self, key: Any) -> Any:
@@ -511,7 +481,7 @@ class AsyncMultiSearch(Request):
         return iter(self._searches)
 
     def _clone(self) -> Any:
-        ms = super()._clone()
+        ms = super(AsyncMultiSearch, self)._clone()
         ms._searches = self._searches[:]
         return ms
 
