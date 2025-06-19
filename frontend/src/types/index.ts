@@ -23,7 +23,7 @@ export interface Order {
 }
 
 export interface WebSocketMessage {
-  type: 'text_chunk' | 'product_search' | 'wait' | 'order';
+  type: 'text_chunk' | 'product_search' | 'wait' | 'order' | 'error' | 'stream_end';
   content?: string | OrderContent;
   message?: string;
   results?: Product[];

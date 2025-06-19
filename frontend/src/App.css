@@ -24,5 +24,36 @@ body {
 
 .App {
   height: 100vh;
-  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+main {
+  flex: 1;
+  background: #f8fafc;
+  overflow: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 20px;
+  }
+  
+  .app-header h1 {
+    font-size: 20px;
+  }
+  
+  .app-navigation {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .nav-btn {
+    flex: 1;
+    max-width: 120px;
+  }
 }

@@ -13,7 +13,6 @@ from aws_cdk import (
 from aws_cdk.custom_resources import Provider
 from constructs import Construct
 import json
-from datetime import datetime
 
 
 class OpenSearchServerlessStack(Stack):
@@ -136,7 +135,7 @@ class OpenSearchServerlessStack(Stack):
         requests_layer = lambda_.LayerVersion(
             self, "RequestsLayer",
             code=lambda_.Code.from_asset("./layers/requests"),
-            compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
             description="Layer containing the requests module"
         )
 
@@ -146,7 +145,7 @@ class OpenSearchServerlessStack(Stack):
         # Create Lambda function to create index and ingest data
         ingest_lambda = lambda_.Function(
             self, "IngestDataFunction",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_12,
             handler="index.handler",
             code=lambda_.Code.from_asset("./lambda/ingest_opensearch"),
             environment={
@@ -163,7 +162,7 @@ class OpenSearchServerlessStack(Stack):
         # Ensure Lambda waits for access policy to be created
         ingest_lambda.node.add_dependency(data_access_policy)
 
-        # Custom resource to trigger Lambda only after collection is fully ready
+        # Custom resource to trigger Lambda only once during initial deployment
         custom_resource = CustomResource(
             self, "IngestTrigger",
             service_token=Provider(
@@ -171,7 +170,8 @@ class OpenSearchServerlessStack(Stack):
                 on_event_handler=ingest_lambda
             ).service_token,
             properties={
-                "Timestamp": datetime.now().isoformat()  # Force update on each deployment
+                "CollectionName": collection_name,  # Static property that won't change
+                "IndexName": "products"  # Static property that won't change
             }
         )
 

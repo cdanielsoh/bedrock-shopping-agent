@@ -1,0 +1,260 @@
+.monitoring-dashboard {
+  height: 100%;
+  background: #f7fafc;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-header {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.header-top {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.header-top h1 {
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.header-navigation {
+  position: absolute;
+  right: 0;
+  display: flex;
+  gap: 10px;
+}
+
+.nav-btn {
+  background: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+  background: #edf2f7;
+  transform: translateY(-1px);
+}
+
+.nav-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.dashboard-header h1 {
+  color: #2d3748;
+  margin-bottom: 8px;
+  font-size: 32px;
+}
+
+.dashboard-header p {
+  color: #718096;
+  font-size: 18px;
+  margin: 0;
+}
+
+.dashboard-navigation {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.nav-button {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 25px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 280px;
+}
+
+.nav-button:hover {
+  border-color: #4299e1;
+  box-shadow: 0 2px 8px rgba(66, 153, 225, 0.15);
+}
+
+.nav-button.active {
+  border-color: #4299e1;
+  background: #ebf8ff;
+  box-shadow: 0 2px 8px rgba(66, 153, 225, 0.15);
+}
+
+.nav-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #edf2f7;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.nav-button.active .nav-icon {
+  background: #4299e1;
+  color: white;
+}
+
+.nav-content {
+  flex: 1;
+  text-align: left;
+}
+
+.nav-title {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.nav-description {
+  font-size: 14px;
+  color: #718096;
+  line-height: 1.4;
+}
+
+.nav-button.active .nav-title {
+  color: #2b6cb0;
+}
+
+.dashboard-content {
+  background: #f7fafc;
+  flex: 1;
+  overflow: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-header {
+    padding: 20px 15px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 24px;
+  }
+  
+  .dashboard-header p {
+    font-size: 16px;
+  }
+  
+  .dashboard-navigation {
+    padding: 15px;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .nav-button {
+    min-width: auto;
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+/* Agent Monitor Container */
+.agent-monitor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.session-input-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.session-input-section h3 {
+  margin: 0 0 8px 0;
+  color: #2d3748;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.session-input-section p {
+  margin: 0 0 16px 0;
+  color: #718096;
+  line-height: 1.5;
+}
+
+.session-input-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.session-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  transition: border-color 0.2s;
+}
+
+.session-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.monitor-button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.monitor-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.monitor-button:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .session-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .monitor-button {
+    width: 100%;
+  }
+}

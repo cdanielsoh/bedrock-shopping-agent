@@ -23,3 +23,107 @@ body {
   width: 100%;
   min-height: 100vh;
 }
+
+/* EventLoopMetrics Styles */
+.metrics-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.metrics-section h3 {
+  margin: 0 0 20px 0;
+  color: #495057;
+  font-size: 1.2em;
+}
+
+.metrics-summary-cards,
+.metrics-averages-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.metrics-timeline {
+  margin-top: 25px;
+}
+
+.metrics-timeline h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 1.1em;
+}
+
+.timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.timeline-item {
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.message-number {
+  font-weight: 600;
+  color: #495057;
+}
+
+.timeline-metrics {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.metric-label {
+  font-size: 0.8em;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9em;
+}
+
+.no-metrics {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+}
+
+.no-metrics .error-text {
+  color: #dc3545;
+  font-size: 0.9em;
+  margin-top: 10px;
+}

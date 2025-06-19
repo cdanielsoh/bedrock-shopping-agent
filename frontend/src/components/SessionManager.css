@@ -1,0 +1,195 @@
+.session-manager {
+  position: relative;
+  display: inline-block;
+}
+
+.session-toggle {
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.session-toggle:hover {
+  background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+  border-color: #cbd5e0;
+}
+
+.session-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  /* Ensure it stays within viewport */
+  transform: translateX(-20px);
+  margin-top: 8px;
+  /* Animation */
+  animation: slideDown 0.2s ease-out;
+  transform-origin: top right;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-20px) translateY(0) scale(1);
+  }
+}
+
+/* Arrow pointing up to the toggle button */
+.session-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 30px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid white;
+  filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.1));
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.session-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.new-session-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.new-session-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.session-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.no-sessions {
+  padding: 20px;
+  text-align: center;
+  color: #a0aec0;
+  font-style: italic;
+}
+
+.session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f7fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.session-item:hover {
+  background: #f7fafc;
+}
+
+.session-item.active {
+  background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+  border-left: 3px solid #667eea;
+}
+
+.session-info {
+  flex: 1;
+}
+
+.session-title {
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 4px;
+}
+
+.session-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #718096;
+}
+
+.session-id {
+  font-family: monospace;
+  background: #f7fafc;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.delete-session {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.delete-session:hover {
+  background: #fed7d7;
+  opacity: 1;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .session-dropdown {
+    min-width: 280px;
+    right: -10px;
+    transform: translateX(0);
+    max-width: calc(100vw - 40px);
+  }
+  
+  .session-header {
+    padding: 12px;
+  }
+  
+  .session-item {
+    padding: 10px 12px;
+  }
+}
+
+/* For very small screens */
+@media (max-width: 480px) {
+  .session-dropdown {
+    right: -20px;
+    min-width: 260px;
+    max-width: calc(100vw - 20px);
+  }
+}

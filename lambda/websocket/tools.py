@@ -57,7 +57,7 @@ class KeywordProductSearchTool(Tool):
                     "fields": ["name", "category", "style", "description"],
                 }
             },
-            "size": 20  # Get more results to allow for better personalization
+            "size": 10
         }
 
         response = self.oss_client.search(
@@ -69,19 +69,30 @@ class KeywordProductSearchTool(Tool):
 
         item_ids = [hit['_source']['id'] for hit in search_results]
 
+        # Remove duplicates based on item_id
+        seen_ids = set()
+        unique_results = []
+        for hit in search_results:
+            item_id = hit['_source']['id']
+            if item_id not in seen_ids:
+                seen_ids.add(item_id)
+                unique_results.append(hit)
+        
+        item_ids = [hit['_source']['id'] for hit in unique_results]
+
         logger.info(f"Found {len(item_ids)} items in search results")
 
         if item_ids:
 
-            for hit in search_results:
+            for hit in unique_results:
                 hit['_source']['image_url'] = f"{self.cloudfront_url}/{hit['_source']['id']}.jpg"
 
-            product_reviews = GetProductReviewsTool(self.dynamodb, self.reviews_table).execute(list(set(item_ids)))
+            product_reviews = GetProductReviewsTool(self.dynamodb, self.reviews_table).execute(item_ids)
 
-            for hit in search_results:
+            for hit in unique_results:
                 hit['_source']['reviews'] = product_reviews.get(hit['_source']['id'], {})
             
-            return search_results
+            return unique_results
 
         else:
             return []
@@ -203,27 +214,31 @@ class GetOrderHistoryTool(Tool):
             )
             
             orders = response.get('Items', [])
+
+            item_ids = [order.get('item_id') for order in orders]
             
-            formatted_orders = []
-            for order in orders:
-                item_id = order.get('item_id')
-                item_details = self.oss_client.search(
-                    index=self.index,
-                    body={
-                        "_source": ["id", "image_url", "name", "description", "price", "gender_affinity", "current_stock"],
-                        "query": {
-                            "terms": {
-                                "id": re.findall(r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}', item_id)
-                            }
+            item_details = self.oss_client.search(
+                index=self.index,
+                body={
+                    "_source": ["id", "image_url", "name", "description", "price", "gender_affinity", "current_stock"],
+                    "query": {
+                        "terms": {
+                            "id": item_ids
                         }
                     }
-                )
+                }
+            )
+
+            formatted_orders = []
+            for order, item_detail in zip(orders, item_details['hits']['hits']):
+                item_id = order.get('item_id')
+                
                 formatted_order = {
                     "order_id": order.get('order_id'),
                     "timestamp": order.get('timestamp'),
                     "item_id": item_id,
                     "delivery_status": order.get('delivery_status'),
-                    "item_details": item_details
+                    "item_details": item_detail['_source']
                 }
                 formatted_orders.append(formatted_order)
 
@@ -248,6 +263,57 @@ class GetOrderHistoryTool(Tool):
                             "user_id": {
                                 "type": "string",
                                 "description": "The ID of the user to get order history for"
+                            }
+                        },
+                        "required": ["user_id"]
+                    }
+                }
+            }
+        }
+    
+
+class GetUserInfoTool(Tool):
+    def __init__(self, user_table: str):
+        self.user_table = boto3.resource('dynamodb', region_name=REGION).Table(user_table)
+
+    def execute(self, user_id: str) -> dict:
+        if not user_id:
+            return "Error: user_id is required"
+        
+        try:
+            response = self.user_table.get_item(
+                Key={
+                    'id': user_id
+                }
+            )
+
+            user = response.get('Item')
+
+            if not user:
+                return "Error: User not found"
+            
+            return "User info: " + str(user)
+
+        except Exception as e:
+            error_msg = f"Error getting user address: {str(e)}"
+            print(error_msg)
+            return "Error: " + error_msg
+
+    def get_tool_name(self):
+        return "get_user_info"
+    
+    def get_tool_spec(self):
+        return {
+            "toolSpec": {
+                "name": "get_user_info",
+                "description": "Get user info for a user",
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {
+                                "type": "string",
+                                "description": "The ID of the user to get info for"
                             }
                         },
                         "required": ["user_id"]

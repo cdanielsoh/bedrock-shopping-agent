@@ -8,6 +8,17 @@ from io import StringIO
 import time
 
 def handler(event, context):
+    # Handle CloudFormation custom resource events
+    request_type = event.get('RequestType', 'Create')
+    
+    # Only process on Create events, skip Update and Delete
+    if request_type != 'Create':
+        print(f"Skipping ingest for RequestType: {request_type}")
+        return {
+            'statusCode': 200,
+            'body': json.dumps(f'Skipped ingest for {request_type} event')
+        }
+    
     # Get environment variables
     collection_endpoint = os.environ['COLLECTION_ENDPOINT']
     bucket_name = os.environ['DATA_BUCKET']
@@ -28,6 +39,14 @@ def handler(event, context):
     )
 
     try:
+        # Check if index already exists and has data
+        if index_has_data(collection_endpoint, index_name, awsauth):
+            print(f"Index {index_name} already has data, skipping ingest")
+            return {
+                'statusCode': 200,
+                'body': json.dumps('Index already contains data, skipping ingest')
+            }
+
         # Create the OpenSearch index with mapping
         create_index(collection_endpoint, index_name, awsauth)
 
@@ -52,6 +71,27 @@ def handler(event, context):
             'statusCode': 500,
             'body': json.dumps(f'Error: {str(e)}')
         }
+
+def index_has_data(endpoint, index_name, auth):
+    """Check if the index exists and has data"""
+    url = f"{endpoint}/{index_name}/_count"
+    
+    try:
+        response = requests.get(url, auth=auth, verify=True)
+        if response.status_code == 200:
+            result = response.json()
+            count = result.get('count', 0)
+            print(f"Index {index_name} has {count} documents")
+            return count > 0
+        elif response.status_code == 404:
+            print(f"Index {index_name} does not exist")
+            return False
+        else:
+            print(f"Error checking index count: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"Error checking if index has data: {str(e)}")
+        return False
 
 def create_index(endpoint, index_name, auth):
     url = f"{endpoint}/{index_name}"
@@ -164,7 +204,7 @@ def bulk_index_data(endpoint, index_name, csv_reader, auth):
         print(f"Error refreshing index: {str(e)}")
 
 def send_batch(url, headers, batch, auth):
-    body = '\\n'.join(batch) + '\\n'
+    body = '\n'.join(batch) + '\n'
     try:
         response = requests.post(url, auth=auth, headers=headers, data=body, verify=True)
 

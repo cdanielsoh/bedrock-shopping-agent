@@ -3,7 +3,7 @@ from constructs import Construct
 from aws_cdk import (
     aws_lambda as lambda_,
     aws_apigatewayv2 as apigatewayv2,
-    aws_apigatewayv2_integrations as integrations,
+    aws_apigatewayv2_integrations as apigatewayv2_integrations,
     aws_iam as iam,
     aws_s3 as s3,
     aws_s3_deployment as s3_deployment,
@@ -39,6 +39,85 @@ class WebFrontendStack(cdk.Stack):
             removal_policy=cdk.RemovalPolicy.DESTROY,
         )
 
+        # Create DynamoDB table for hybrid conversations (handler-specific messages)
+        conversations_table = dynamodb.Table(
+            self, 'ConversationsTable',
+            partition_key=dynamodb.Attribute(
+                name='conversation_id',  # Format: session_id#handler_type
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+            time_to_live_attribute='ttl'  # Auto-cleanup old conversations
+        )
+
+        # Add GSI for querying by session_id
+        conversations_table.add_global_secondary_index(
+            index_name='SessionIndex',
+            partition_key=dynamodb.Attribute(
+                name='session_id',
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name='updated_at',
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        # Create DynamoDB table for shared context (products, orders, preferences)
+        shared_context_table = dynamodb.Table(
+            self, 'SharedContextTable',
+            partition_key=dynamodb.Attribute(
+                name='session_id',
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+            time_to_live_attribute='ttl'  # Auto-cleanup old context
+        )
+
+        # Create DynamoDB table for performance metrics
+        performance_metrics_table = dynamodb.Table(
+            self, 'PerformanceMetricsTable',
+            partition_key=dynamodb.Attribute(
+                name='metric_id',  # Format: session_id#timestamp
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+            time_to_live_attribute='ttl'  # Auto-cleanup old metrics
+        )
+
+        # Add GSI for querying by user_id and timestamp
+        performance_metrics_table.add_global_secondary_index(
+            index_name='UserIdIndex',
+            partition_key=dynamodb.Attribute(
+                name='user_id',
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name='timestamp',
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        # Add GSI for querying by handler_type and timestamp
+        performance_metrics_table.add_global_secondary_index(
+            index_name='HandlerTypeIndex',
+            partition_key=dynamodb.Attribute(
+                name='handler_type',
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name='timestamp',
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        # Keep the original chat history table for backward compatibility during migration
         # Create DynamoDB table to store chat history
         chat_history_table = dynamodb.Table(
             self, 'ChatHistoryTable',
@@ -53,6 +132,19 @@ class WebFrontendStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             removal_policy=cdk.RemovalPolicy.DESTROY,
             time_to_live_attribute='ttl'  # Auto-cleanup old messages
+        )
+
+        # Add GSI for session-based queries
+        chat_history_table.add_global_secondary_index(
+            index_name='SessionIndex',
+            partition_key=dynamodb.Attribute(
+                name='session_id',
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name='timestamp',
+                type=dynamodb.AttributeType.STRING
+            )
         )
 
         # Add GSI for connection-based queries (optional)
@@ -84,10 +176,81 @@ class WebFrontendStack(cdk.Stack):
             time_to_live_attribute='ttl'  # Auto-cleanup old recommendations
         )
 
+        # Create DynamoDB table for user sessions
+        user_sessions_table = dynamodb.Table(
+            self, 'UserSessionsTable',
+            partition_key=dynamodb.Attribute(
+                name='session_id',
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+            time_to_live_attribute='ttl'  # Auto-cleanup old sessions
+        )
+
+        # Add GSI for querying sessions by user_id
+        user_sessions_table.add_global_secondary_index(
+            index_name='UserIdIndex',
+            partition_key=dynamodb.Attribute(
+                name='user_id',
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name='last_used',
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        # Add this table to your existing DynamoDB stack
+        agent_conversations_table = dynamodb.Table(
+            self, "AgentConversationsTable",
+            table_name="AgentConversationsTable",
+            partition_key=dynamodb.Attribute(
+                name="session_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            time_to_live_attribute="ttl",  # Auto-cleanup after 24 hours
+            point_in_time_recovery=False,
+            stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES
+        )
+
+        # Add GSI for querying by user_id if needed
+        agent_conversations_table.add_global_secondary_index(
+            index_name="UserIdIndex",
+            partition_key=dynamodb.Attribute(
+                name="user_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
+        agent_event_loop_metrics_table = dynamodb.Table(
+            self, "AgentEventLoopMetricsTable",
+            table_name="AgentEventLoopMetricsTable",
+            partition_key=dynamodb.Attribute(
+                name="session_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            time_to_live_attribute="ttl",  # Auto-cleanup after 24 hours
+            point_in_time_recovery=False,
+            stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES
+        )
+
+        agent_event_loop_metrics_table.add_global_secondary_index(
+            index_name="UserIdIndex",
+            partition_key=dynamodb.Attribute(
+                name="user_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+        )
+
         # Create Lambda functions for WebSocket routes
         connect_function = lambda_.Function(
             self, 'ConnectFunction',
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_12,
             handler='connect.handler',
             code=lambda_.Code.from_asset('lambda/websocket'),
             environment={
@@ -97,7 +260,7 @@ class WebFrontendStack(cdk.Stack):
 
         disconnect_function = lambda_.Function(
             self, 'DisconnectFunction',
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_12,
             handler='disconnect.handler',
             code=lambda_.Code.from_asset('lambda/websocket'),
             environment={
@@ -109,7 +272,7 @@ class WebFrontendStack(cdk.Stack):
         opensearch_layer = lambda_.LayerVersion(
             self, 'OpenSearchLayer',
             code=lambda_.Code.from_asset('layers/opensearchpy'),
-            compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
             description='Layer containing the OpenSearch SDK'
         )
         
@@ -117,35 +280,66 @@ class WebFrontendStack(cdk.Stack):
         boto3_layer = lambda_.LayerVersion(
             self, 'Boto3Layer',
             code=lambda_.Code.from_asset('layers/boto3'),
-            compatible_runtimes=[lambda_.Runtime.PYTHON_3_9],
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
             description='Layer containing the latest boto3 SDK with prompt caching support'
+        )
+
+        # Create Lambda layer for strands
+        strands_layer = lambda_.LayerVersion(
+            self, 'StrandsLayer',
+            code=lambda_.Code.from_asset('layers/strands'),
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+            description='Layer containing the strands SDK'
         )
 
         # Create Bedrock Lambda function with both KnowledgeBase and OpenSearch access
         message_function = lambda_.Function(
             self, 'MessageLambdaFunction',
-            runtime=lambda_.Runtime.PYTHON_3_9,
-            handler='message.handler',
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler='message_refactored.handler',
             code=lambda_.Code.from_asset('lambda/websocket'),
-            layers=[opensearch_layer, boto3_layer],
+            layers=[opensearch_layer, boto3_layer, strands_layer],
             environment={
                 'REGION': self.region,
                 'CONNECTIONS_TABLE': connections_table.table_name,
                 'CHAT_HISTORY_TABLE': chat_history_table.table_name,
+                'CONVERSATIONS_TABLE': conversations_table.table_name,
+                'SHARED_CONTEXT_TABLE': shared_context_table.table_name,
+                'PERFORMANCE_METRICS_TABLE': performance_metrics_table.table_name,
+                'SESSIONS_TABLE': user_sessions_table.table_name,
                 'OPENSEARCH_ENDPOINT': opensearch_endpoint,
                 'OPENSEARCH_INDEX': 'products',
                 'ORDERS_TABLE': orders_table_name,
                 'REVIEWS_TABLE': reviews_table_name,
                 'USERS_TABLE': users_table_name,
+                'AGENT_CONVERSATIONS_TABLE': agent_conversations_table.table_name,
+                'AGENT_EVENT_LOOP_METRICS_TABLE': agent_event_loop_metrics_table.table_name,
             },
             timeout=Duration.minutes(5),
             memory_size=1024
         )
 
+        # Create Lambda function for session management
+        session_management_function = lambda_.Function(
+            self, 'SessionManagementFunction',
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler='session_manager.lambda_handler',
+            code=lambda_.Code.from_asset('lambda/sessions'),
+            environment={
+                'REGION': self.region,
+                'SESSIONS_TABLE': user_sessions_table.table_name,
+            },
+            timeout=Duration.minutes(2),
+            memory_size=512
+        )
+
+        # Grant permissions to session management function
+        user_sessions_table.grant_read_write_data(session_management_function)
+
         # Create Lambda function for chat recommendations
         recommend_chat_function = lambda_.Function(
             self, 'RecommendChatFunction',
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            runtime=lambda_.Runtime.PYTHON_3_12,
             handler='index.handler',
             code=lambda_.Code.from_asset('lambda/recommend_next_chat'),
             layers=[boto3_layer],
@@ -163,10 +357,22 @@ class WebFrontendStack(cdk.Stack):
         connections_table.grant_read_write_data(connect_function)
         connections_table.grant_read_write_data(disconnect_function)
         connections_table.grant_read_write_data(message_function)
-        
+
         # Grant chat history table permissions
         chat_history_table.grant_read_write_data(message_function)
         chat_history_table.grant_read_data(recommend_chat_function)
+        
+        # Grant hybrid conversation tables permissions
+        conversations_table.grant_read_write_data(message_function)
+        shared_context_table.grant_read_write_data(message_function)
+        performance_metrics_table.grant_read_write_data(message_function)
+        
+        # Grant sessions table permissions
+        user_sessions_table.grant_read_write_data(message_function)
+        
+        # Grant agent conversations table permissions
+        agent_conversations_table.grant_read_write_data(message_function)
+        agent_event_loop_metrics_table.grant_read_write_data(message_function)
         
         # Grant chat recommendations table permissions
         chat_recommendations_table.grant_read_write_data(recommend_chat_function)
@@ -234,17 +440,17 @@ class WebFrontendStack(cdk.Stack):
         websocket_api = apigatewayv2.WebSocketApi(
             self, 'BedrockWebSocketAPI',
             connect_route_options=apigatewayv2.WebSocketRouteOptions(
-                integration=integrations.WebSocketLambdaIntegration(
+                integration=apigatewayv2_integrations.WebSocketLambdaIntegration(
                     'ConnectIntegration', connect_function
                 )
             ),
             disconnect_route_options=apigatewayv2.WebSocketRouteOptions(
-                integration=integrations.WebSocketLambdaIntegration(
+                integration=apigatewayv2_integrations.WebSocketLambdaIntegration(
                     'DisconnectIntegration', disconnect_function
                 )
             ),
             default_route_options=apigatewayv2.WebSocketRouteOptions(
-                integration=integrations.WebSocketLambdaIntegration(
+                integration=apigatewayv2_integrations.WebSocketLambdaIntegration(
                     'MessageIntegration', message_function
                 )
             ),
@@ -270,8 +476,56 @@ class WebFrontendStack(cdk.Stack):
             self, 'RecommendationsHttpApi',
             cors_preflight=apigatewayv2.CorsPreflightOptions(
                 allow_origins=['*'],
-                allow_methods=[apigatewayv2.CorsHttpMethod.GET, apigatewayv2.CorsHttpMethod.POST, apigatewayv2.CorsHttpMethod.OPTIONS],
-                allow_headers=['Content-Type', 'Authorization']
+                allow_methods=[
+                    apigatewayv2.CorsHttpMethod.GET, 
+                    apigatewayv2.CorsHttpMethod.POST, 
+                    apigatewayv2.CorsHttpMethod.PUT,
+                    apigatewayv2.CorsHttpMethod.DELETE,
+                    apigatewayv2.CorsHttpMethod.OPTIONS
+                ],
+                allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
+                max_age=Duration.seconds(300)
+            )
+        )
+
+        # Add routes for session management
+        # GET /sessions/{userId} - Get user sessions
+        http_api.add_routes(
+            path='/sessions/{userId}',
+            methods=[apigatewayv2.HttpMethod.GET],
+            integration=apigatewayv2_integrations.HttpLambdaIntegration(
+                'GetUserSessionsIntegration',
+                session_management_function
+            )
+        )
+
+        # POST /sessions - Create new session
+        http_api.add_routes(
+            path='/sessions',
+            methods=[apigatewayv2.HttpMethod.POST],
+            integration=apigatewayv2_integrations.HttpLambdaIntegration(
+                'CreateSessionIntegration',
+                session_management_function
+            )
+        )
+
+        # PUT /sessions/{sessionId} - Update session
+        http_api.add_routes(
+            path='/sessions/{sessionId}',
+            methods=[apigatewayv2.HttpMethod.PUT],
+            integration=apigatewayv2_integrations.HttpLambdaIntegration(
+                'UpdateSessionIntegration',
+                session_management_function
+            )
+        )
+
+        # DELETE /sessions/{sessionId} - Delete session
+        http_api.add_routes(
+            path='/sessions/{sessionId}',
+            methods=[apigatewayv2.HttpMethod.DELETE],
+            integration=apigatewayv2_integrations.HttpLambdaIntegration(
+                'DeleteSessionIntegration',
+                session_management_function
             )
         )
 
@@ -279,7 +533,7 @@ class WebFrontendStack(cdk.Stack):
         http_api.add_routes(
             path='/recommendations',
             methods=[apigatewayv2.HttpMethod.GET],
-            integration=integrations.HttpLambdaIntegration(
+            integration=apigatewayv2_integrations.HttpLambdaIntegration(
                 'RecommendChatGetIntegration',
                 recommend_chat_function
             )
@@ -288,7 +542,7 @@ class WebFrontendStack(cdk.Stack):
         http_api.add_routes(
             path='/recommendations',
             methods=[apigatewayv2.HttpMethod.POST],
-            integration=integrations.HttpLambdaIntegration(
+            integration=apigatewayv2_integrations.HttpLambdaIntegration(
                 'RecommendChatPostIntegration',
                 recommend_chat_function
             )
@@ -374,6 +628,78 @@ class WebFrontendStack(cdk.Stack):
         message_function.add_environment(
             'IMAGES_CLOUDFRONT_URL', 
             f'https://{images_distribution.distribution_domain_name}'
+        )
+
+        # Create monitoring API Lambda function
+        monitoring_function = lambda_.Function(
+            self, 'MonitoringApiFunction',
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler='monitoring_api.lambda_handler',
+            code=lambda_.Code.from_asset('lambda/monitoring'),
+            timeout=cdk.Duration.seconds(30),
+            memory_size=256,
+            environment={
+                'REGION': self.region,
+                'CONVERSATIONS_TABLE': conversations_table.table_name,
+                'SHARED_CONTEXT_TABLE': shared_context_table.table_name,
+                'PERFORMANCE_METRICS_TABLE': performance_metrics_table.table_name,
+                'SESSIONS_TABLE': user_sessions_table.table_name,
+                'AGENT_CONVERSATIONS_TABLE': agent_conversations_table.table_name,  # Added agent conversations
+                'AGENT_EVENT_LOOP_METRICS_TABLE': agent_event_loop_metrics_table.table_name,
+            },
+            layers=[boto3_layer]
+        )
+
+        # Grant monitoring function read access to tables
+        conversations_table.grant_read_data(monitoring_function)
+        shared_context_table.grant_read_data(monitoring_function)
+        performance_metrics_table.grant_read_data(monitoring_function)
+        user_sessions_table.grant_read_data(monitoring_function)
+        agent_conversations_table.grant_read_data(monitoring_function)  # Added agent conversations access
+        agent_event_loop_metrics_table.grant_read_data(monitoring_function)  # Added agent event loop metrics access
+
+        # Add monitoring routes to HTTP API
+        monitoring_integration = apigatewayv2_integrations.HttpLambdaIntegration(
+            'MonitoringIntegration',
+            monitoring_function
+        )
+
+        # Add monitoring API routes
+        http_api.add_routes(
+            path='/monitoring/conversations/{sessionId}',
+            methods=[apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.OPTIONS],
+            integration=monitoring_integration
+        )
+
+        # Add agent conversation monitoring routes
+        http_api.add_routes(
+            path='/monitoring/agent-conversations/{sessionId}',
+            methods=[apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.OPTIONS],
+            integration=monitoring_integration  # Use the same monitoring integration
+        )
+
+        http_api.add_routes(
+            path='/monitoring/context/{sessionId}',
+            methods=[apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.OPTIONS],
+            integration=monitoring_integration
+        )
+
+        http_api.add_routes(
+            path='/monitoring/router/{sessionId}',
+            methods=[apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.OPTIONS],
+            integration=monitoring_integration
+        )
+
+        http_api.add_routes(
+            path='/monitoring/sessions/{userId}',
+            methods=[apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.OPTIONS],
+            integration=monitoring_integration
+        )
+
+        http_api.add_routes(
+            path='/monitoring/performance',
+            methods=[apigatewayv2.HttpMethod.GET, apigatewayv2.HttpMethod.OPTIONS],
+            integration=monitoring_integration
         )
 
         # Output the WebSocket API URL

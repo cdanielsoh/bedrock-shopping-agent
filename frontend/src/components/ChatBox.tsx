@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import WebSocketService from '../services/websocket';
 import UserSelector from './UserSelector';
 import RecommendationBubbles from './RecommendationBubbles';
+import SessionManagerComponent from './SessionManager';
 import { getUserById } from '../data/users';
+import { SessionManager } from '../services/sessionManager';
 import type { WebSocketMessage, Product, OrderContent } from '../types';
 import './ChatBox.css';
 
@@ -13,14 +16,22 @@ interface ChatMessage {
   isWaiting?: boolean;
   waitMessage?: string;
   orderInfo?: OrderContent;
+  isError?: boolean;
 }
 
-const ChatBox = () => {
+interface ChatBoxProps {
+  onViewChange: (view: 'chat' | 'monitoring') => void;
+}
+
+const ChatBox = ({ onViewChange }: ChatBoxProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('15'); // Default to first user
   const [wsService, setWsService] = useState<WebSocketService | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [useAgent, setUseAgent] = useState(false); // New state for agent toggle
+  const [showSuggestions, setShowSuggestions] = useState(true); // New state for suggestions toggle
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Debug log for messages state changes
@@ -34,6 +45,28 @@ const ChatBox = () => {
   }, [messages]);
 
   useEffect(() => {
+    console.log(`🔧 ChatBox useEffect: Initializing with selectedUserId: ${selectedUserId}`);
+    
+    // Initialize session API with HTTP API URL from CDK output
+    const httpApiUrl = 'https://mselacy07a.execute-api.us-west-2.amazonaws.com';
+    SessionManager.initializeWithApi(httpApiUrl);
+    
+    // Initialize session with user ID (now async)
+    const initializeSession = async () => {
+      try {
+        const sessionId = await SessionManager.getCurrentSessionId(selectedUserId);
+        console.log(`🎯 Initial session ID for user ${selectedUserId}: ${sessionId}`);
+        setCurrentSessionId(sessionId);
+      } catch (error) {
+        console.error('Error initializing session:', error);
+        // Fallback to generating a session ID
+        const fallbackSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        setCurrentSessionId(fallbackSessionId);
+      }
+    };
+    
+    initializeSession();
+    
     // Replace with your WebSocket URL
     const ws = new WebSocketService('wss://rihakjloyf.execute-api.us-west-2.amazonaws.com/prod');
     setWsService(ws);
@@ -41,7 +74,22 @@ const ChatBox = () => {
     const removeHandler = ws.onMessage((message: WebSocketMessage) => {
       console.log('ChatBox processing message type:', message.type);
       
-      if (message.type === 'wait' && message.message) {
+      if (message.type === 'error' && message.message) {
+        // Handle error message - show error styling
+        console.log('Processing error message:', message.message);
+        setMessages(prev => {
+          // Remove any waiting messages first
+          const filtered = prev.filter(msg => !msg.isWaiting);
+          return [...filtered, {
+            type: 'assistant' as const,
+            content: message.message || 'An error occurred',
+            isError: true
+          }];
+        });
+      } else if (message.type === 'stream_end') {
+        // Handle stream end - just log it, no UI changes needed
+        console.log('Stream ended');
+      } else if (message.type === 'wait' && message.message) {
         // Handle wait message - show spinner with message
         console.log('Processing wait message:', message.message);
         setMessages(prev => {
@@ -90,8 +138,8 @@ const ChatBox = () => {
           }
           
           const lastMessage = filtered[filtered.length - 1];
-          if (lastMessage && lastMessage.type === 'assistant' && !lastMessage.products && !lastMessage.orderInfo) {
-            // Append to existing assistant message
+          if (lastMessage && lastMessage.type === 'assistant' && !lastMessage.products && !lastMessage.orderInfo && !lastMessage.isError) {
+            // Append to existing assistant message (but not to error messages)
             return [
               ...filtered.slice(0, -1),
               { ...lastMessage, content: lastMessage.content + textContent }
@@ -125,6 +173,37 @@ const ChatBox = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Effect to handle user changes and update session accordingly
+  useEffect(() => {
+    console.log(`👤 User change effect triggered. selectedUserId: ${selectedUserId}`);
+    
+    if (selectedUserId) {
+      // Get or create session for the selected user (now async)
+      const updateUserSession = async () => {
+        try {
+          const userSessionId = await SessionManager.getCurrentSessionId(selectedUserId);
+          console.log(`🔍 Retrieved session for user ${selectedUserId}: ${userSessionId}`);
+          console.log(`🔍 Current session ID: ${currentSessionId}`);
+          
+          if (userSessionId !== currentSessionId) {
+            console.log(`🔄 Session change detected! Old: ${currentSessionId}, New: ${userSessionId}`);
+            setCurrentSessionId(userSessionId);
+            setMessages([]); // Clear messages when switching to different user's session
+            console.log(`✅ Updated session and cleared messages for user ${selectedUserId}`);
+          } else {
+            console.log(`✨ Session unchanged for user ${selectedUserId}: ${userSessionId}`);
+          }
+        } catch (error) {
+          console.error('Error updating user session:', error);
+        }
+      };
+      
+      updateUserSession();
+    } else {
+      console.log(`⚠️ No selectedUserId provided`);
+    }
+  }, [selectedUserId]); // Only depend on selectedUserId to avoid loops
+
   const sendMessage = () => {
     if (!inputMessage.trim() || !selectedUserId) return;
 
@@ -135,14 +214,19 @@ const ChatBox = () => {
       content: inputMessage
     }]);
 
-    // Send message with user persona data
+    // Send message with user persona data and agent flag
     wsService?.sendMessage(
       inputMessage, 
       selectedUserId, 
       selectedUser?.persona, 
-      selectedUser?.discount_persona
+      selectedUser?.discount_persona,
+      useAgent, // Pass the agent flag
+      currentSessionId // Pass the session ID
     );
     setInputMessage('');
+    
+    // Automatically turn off suggestions when user sends a message
+    setShowSuggestions(false);
   };
 
   const handleRecommendationClick = (recommendation: string) => {
@@ -155,17 +239,38 @@ const ChatBox = () => {
       content: recommendation
     }]);
 
-    // Send recommendation message with user persona data
+    // Send recommendation message with user persona data and agent flag
     wsService?.sendMessage(
       recommendation, 
       selectedUserId, 
       selectedUser?.persona, 
-      selectedUser?.discount_persona
+      selectedUser?.discount_persona,
+      useAgent, // Pass the agent flag
+      currentSessionId // Pass the session ID
     );
+    
+    // Automatically turn off suggestions when user clicks a recommendation
+    setShowSuggestions(false);
   };
 
-  const handleUserIdChange = (userId: string) => {
+  const handleUserIdChange = async (userId: string) => {
+    console.log(`👤 handleUserIdChange called: ${userId} (previous: ${selectedUserId})`);
     setSelectedUserId(userId);
+    // The useEffect will handle session switching automatically
+    // Automatically turn on suggestions when switching users
+    setShowSuggestions(true);
+    console.log(`✅ User change completed, suggestions enabled`);
+  };
+
+  const handleSessionChange = (newSessionId: string) => {
+    console.log(`🔄 handleSessionChange called: ${newSessionId} (previous: ${currentSessionId})`);
+    setCurrentSessionId(newSessionId);
+    // Clear current messages when switching sessions
+    setMessages([]);
+    // Update session last used time with user ID
+    console.log(`📝 Updating session last used for user ${selectedUserId}`);
+    SessionManager.updateSessionLastUsed(newSessionId, selectedUserId);
+    console.log(`✅ Session change completed`);
   };
 
   const renderProduct = (product: Product) => (
@@ -210,27 +315,55 @@ const ChatBox = () => {
       
       <div className="chat-container">
         <div className="chat-header">
-          <h1>🛍️ AI Shopping Assistant</h1>
+          <div className="header-top">
+            <h1>🛍️ AI Shopping Assistant</h1>
+            <div className="header-navigation">
+              <button
+                className="nav-btn active"
+                onClick={() => onViewChange('chat')}
+              >
+                💬 Chat
+              </button>
+              <button
+                className="nav-btn"
+                onClick={() => onViewChange('monitoring')}
+              >
+                🔧 Monitoring
+              </button>
+            </div>
+          </div>
           <p>Your personal shopping companion powered by AI</p>
+          <div className="session-section">
+            <SessionManagerComponent
+              currentSessionId={currentSessionId}
+              onSessionChange={handleSessionChange}
+              userId={selectedUserId}
+            />
+          </div>
         </div>
         
-        <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-          {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+        <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'} ${useAgent ? 'agent-mode' : ''}`}>
+          {isConnected ? (useAgent ? '🤖 Agent Mode - Connected' : '🟢 Connected') : '🔴 Disconnected'}
         </div>
         
         <div className="chat-messages">
           {messages.map((message, index) => (
-            <div key={index} className={`message ${message.type}`}>
+            <div key={index} className={`message ${message.type} ${message.isError ? 'error' : ''}`}>
               {/* Only render message content div if there's actual content or a waiting spinner */}
               {(message.content || message.isWaiting) && (
-                <div className="message-content">
+                <div className={`message-content ${message.isError ? 'error-content' : ''}`}>
                   {message.isWaiting ? (
                     <div className="spinner-container">
                       <div className="spinner"></div>
                       <span className="wait-message">{message.waitMessage}</span>
                     </div>
                   ) : (
-                    message.content
+                    <div className="markdown-content">
+                      {message.isError && <span className="error-icon">⚠️ </span>}
+                      <ReactMarkdown>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
                   )}
                 </div>
               )}
@@ -249,24 +382,56 @@ const ChatBox = () => {
         <RecommendationBubbles
           user={selectedUserId ? getUserById(selectedUserId) || null : null}
           onRecommendationClick={handleRecommendationClick}
-          isVisible={isConnected && selectedUserId !== ''}
+          isVisible={isConnected && selectedUserId !== '' && showSuggestions}
         />
         
         <div className="chat-input">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Ask me about products, orders, or anything else..."
-            disabled={!isConnected || !selectedUserId}
-          />
-          <button 
-            onClick={sendMessage}
-            disabled={!isConnected || !selectedUserId || !inputMessage.trim()}
-          >
-            Send 🚀
-          </button>
+          <div className="input-controls">
+            <div className="toggle-controls">
+              <div className="agent-toggle">
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={useAgent}
+                    onChange={(e) => setUseAgent(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <span className="toggle-label">
+                  {useAgent ? '🤖 Agent Mode' : '💬 Chat Mode'}
+                </span>
+              </div>
+              <div className="suggestions-toggle">
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={showSuggestions}
+                    onChange={(e) => setShowSuggestions(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <span className="toggle-label">
+                  {showSuggestions ? '💡 Suggestions On' : '💡 Suggestions Off'}
+                </span>
+              </div>
+            </div>
+            <div className="message-input-container">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                placeholder={useAgent ? "Ask the agent to help with complex tasks..." : "Ask me about products, orders, or anything else..."}
+                disabled={!isConnected || !selectedUserId}
+              />
+              <button 
+                onClick={sendMessage}
+                disabled={!isConnected || !selectedUserId || !inputMessage.trim()}
+              >
+                Send 🚀
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

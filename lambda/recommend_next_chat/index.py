@@ -13,8 +13,21 @@ REGION = os.environ.get('AWS_REGION')
 
 def handler(event, context):
     try:
+        # Handle CORS preflight requests
+        http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method', '')
+        if http_method == 'OPTIONS':
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+                },
+                'body': json.dumps({'message': 'CORS preflight'})
+            }
+        
         # Handle both GET and POST requests
-        if event.get('httpMethod') == 'POST' or event.get('requestContext', {}).get('http', {}).get('method') == 'POST':
+        if http_method == 'POST':
             # POST request with user data in body
             body = json.loads(event.get('body', '{}'))
             user_id = body.get('user_id')
@@ -35,7 +48,7 @@ def handler(event, context):
                 'statusCode': 400,
                 'headers': {
                     'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
                     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
                 },
                 'body': json.dumps({'error': 'user_id is required'})
@@ -47,7 +60,7 @@ def handler(event, context):
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
             },
             'body': json.dumps({'recommendations': recommendations})
@@ -58,7 +71,7 @@ def handler(event, context):
             'statusCode': 500,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
             },
             'body': json.dumps({'error': 'Internal server error'})
