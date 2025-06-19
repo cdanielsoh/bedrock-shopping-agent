@@ -271,6 +271,7 @@ class StreamParser:
     def flush(self) -> None:
         """Flush the buffer and send any remaining content."""
         self._send_text_chunk(self.buffer)
+        self._send_text_chunk("\n")
         self.buffer = ""
     
     def finalize(self) -> None:

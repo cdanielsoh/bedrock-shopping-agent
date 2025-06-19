@@ -3,7 +3,7 @@ Refactored message handlers with hybrid conversation management.
 Each handler maintains isolated message context while sharing metadata.
 """
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List
 from datetime import datetime, timezone
 import logging
 
@@ -205,13 +205,16 @@ class BaseMessageHandler:
                 if isinstance(message.get('content'), list):
                     # Find the last content block and add cache control
                     for content_block in reversed(message['content']):
-                        if isinstance(content_block, dict):
-                            content_block['cacheControl'] = {'type': 'ephemeral'}
+                        if isinstance(content_block, dict) and 'text' in content_block:
+                            # Add cachePoint as a separate content block after the text
                             break
+                    # Add the cachePoint as a separate content block
+                    message['content'].append({'cachePoint': {'type': 'default'}})
                 elif isinstance(message.get('content'), str):
                     # Convert string content to list format with cache control
                     message['content'] = [
-                        {'text': message['content'], 'cacheControl': {'type': 'ephemeral'}}
+                        {'text': message['content']},
+                        {'cachePoint': {'type': 'default'}}
                     ]
         
         return cached_messages
@@ -224,40 +227,29 @@ class RouterHandler(BaseMessageHandler):
         """Route message to appropriate handler."""
         logger.info(f"Routing message to appropriate handler for user {self.user_id}")
         
-        # Add performance monitoring for routing decisions
-        from performance_monitor import StreamingPerformanceMonitor
-        
-        with StreamingPerformanceMonitor(
-            self.session_id, self.user_id, 'router_handler', 
-            "us.anthropic.claude-3-5-haiku-20241022-v1:0", use_agent
-        ) as perf_monitor:
-            try:
-                system_prompt = AGENT_ROUTER_PROMPT if use_agent else ROUTER_PROMPT
-                messages = [{
-                    "role": "user",
-                    "content": [{
-                        "text": f"If the user's message is {self.user_message}, what assistant should I route it to? Respond with only the assistant number (1, 2, 3, 4, or 5) that should handle the user's message. Do not include explanations or additional text."
-                    }]
+        try:
+            system_prompt = AGENT_ROUTER_PROMPT if use_agent else ROUTER_PROMPT
+            messages = [{
+                "role": "user",
+                "content": [{
+                    "text": f"If the user's message is {self.user_message}, what assistant should I route it to? Respond with only the assistant number (1, 2, 3, 4, or 5) that should handle the user's message. Do not include explanations or additional text."
                 }]
-                
-                response = self.rm.bedrock_client.converse(
-                    modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                    messages=messages,
-                    system=[{"text": system_prompt}, {"cachePoint": {"type": "default"}}],
-                )
-                
-                # Update token usage for performance monitoring
-                if 'usage' in response:
-                    perf_monitor.update_token_usage(response['usage'])
-                
-                routing_result = response["output"]["message"]["content"][0]["text"]
-                logger.info(f"Router decision: {routing_result} for message: '{self.user_message[:50]}...'")
-                
-                return routing_result
-                
-            except Exception as e:
-                logger.error(f"Error in routing: {str(e)}")
-                return "3" if use_agent else "4"
+            }]
+            
+            response = self.rm.bedrock_client.converse(
+                modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+                messages=messages,
+                system=[{"text": system_prompt}, {"cachePoint": {"type": "default"}}],
+            )
+            
+            routing_result = response["output"]["message"]["content"][0]["text"]
+            logger.info(f"Router decision: {routing_result} for message: '{self.user_message[:50]}...'")
+            
+            return routing_result
+            
+        except Exception as e:
+            logger.error(f"Error in routing: {str(e)}")
+            return "3" if use_agent else "4"
 
 
 class OrderHistoryHandler(BaseMessageHandler):
@@ -320,7 +312,7 @@ class OrderHistoryHandler(BaseMessageHandler):
                 response = self.rm.bedrock_client.converse_stream(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
                     messages=self._add_cache_control_to_messages(messages),
-                    system=[{"text": enhanced_prompt, "cacheControl": {"type": "ephemeral"}}],
+                    system=[{"text": enhanced_prompt}, {"cachePoint": {"type": "default"}}],
                 )
                 
                 for event in response['stream']:
@@ -398,7 +390,7 @@ class ProductSearchHandler(BaseMessageHandler):
                 response = self.rm.bedrock_client.converse(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
                     messages=messages,
-                    system=[{"text": enhanced_prompt}],
+                    system=[{"text": enhanced_prompt}, {"cachePoint": {"type": "default"}}],
                     toolConfig=tool_config
                 )
                 
@@ -478,7 +470,7 @@ class ProductSearchHandler(BaseMessageHandler):
             final_response = self.rm.bedrock_client.converse_stream(
                 modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
                 messages=self._add_cache_control_to_messages(messages),
-                system=[{"text": enhanced_prompt, "cacheControl": {"type": "ephemeral"}}],
+                system=[{"text": enhanced_prompt}, {"cachePoint": {"type": "default"}}],
                 toolConfig=tool_config
             )
             
@@ -539,7 +531,7 @@ class GeneralInquiryHandler(BaseMessageHandler):
                 response = self.rm.bedrock_client.converse_stream(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
                     messages=self._add_cache_control_to_messages(messages),
-                    system=[{"text": enhanced_prompt, "cacheControl": {"type": "ephemeral"}}],
+                    system=[{"text": enhanced_prompt}, {"cachePoint": {"type": "default"}}],
                 )
                 
                 for event in response['stream']:
@@ -577,67 +569,78 @@ class ProductDetailsHandler(BaseMessageHandler):
     def handle(self):
         """Process product details request."""
         logger.info(f"Processing product details request for user {self.user_id}")
-        try:
-            # Save user message to handler-specific conversation
-            self.save_message_to_handler('user', self.user_message)
-            
-            messages = self.build_conversation_history()
-            stream_parser = StreamParser(self.apigw_management, self.connection_id)
-            
-            # Get shared context for product information
-            shared_context = self.conversation_manager.get_shared_context(self.session_id)
-            product_ids = []
-            
-            # Extract product IDs from shared context
-            for product in shared_context.get('products', []):
-                if isinstance(product, dict) and 'id' in product:
-                    product_ids.append(product['id'])
-            
-            logger.info(f"Found {len(product_ids)} product IDs in shared context")
-            
-            # Get product reviews for shared products
-            product_reviews = {}
-            if product_ids:
-                product_reviews = GetProductReviewsTool(
-                    dynamodb=self.rm.dynamodb_resource,
-                    reviews_table=self.rm.reviews_table_name
-                ).execute(product_ids[:10])  # Limit to 10 products
-                logger.info(f"Retrieved reviews for {len(product_reviews)} products")
-            
-            # Add shared context to prompt
-            context_info = self.get_context_for_prompt()
-            enhanced_prompt = PRODUCT_DETAILS_PROMPT.format(
-                user_persona=self.user_persona,
-                user_discount_persona=self.user_discount_persona,
-                product_reviews=product_reviews
-            )
-            if context_info:
-                enhanced_prompt += f"\n\nShared Context:\n{context_info}"
-
-            response = self.rm.bedrock_client.converse_stream(
-                modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                messages=self._add_cache_control_to_messages(messages),
-                system=[{"text": enhanced_prompt, "cacheControl": {"type": "ephemeral"}}],
-            )
-
-            for event in response['stream']:
-                if 'contentBlockDelta' in event and 'delta' in event['contentBlockDelta']:
-                    delta = event['contentBlockDelta']['delta']
-                    if 'text' in delta:
-                        text_chunk = delta['text']
-                        stream_parser.parse_chunk(text_chunk)
-            
-            stream_parser.finalize()
-            
-            if stream_parser.complete_response:
-                self.save_message_to_handler('assistant', stream_parser.complete_response, {
-                    'response_type': 'product_details',
-                    'referenced_products': product_ids[:5]  # Track which products were referenced
-                })
+        
+        with StreamingPerformanceMonitor(
+            self.session_id, self.user_id, self.handler_type, 
+            "us.anthropic.claude-3-5-haiku-20241022-v1:0", False
+        ) as perf_monitor:
+            try:
+                # Save user message to handler-specific conversation
+                self.save_message_to_handler('user', self.user_message)
                 
-        except Exception as e:
-            logger.error(f"Error handling product details: {str(e)}")
-            self.send_error_message("processing your request")
+                messages = self.build_conversation_history()
+                stream_parser = StreamParser(self.apigw_management, self.connection_id)
+                
+                # Get shared context for product information
+                shared_context = self.conversation_manager.get_shared_context(self.session_id)
+                product_ids = []
+                
+                # Extract product IDs from shared context
+                for product in shared_context.get('products', []):
+                    if isinstance(product, dict) and 'id' in product:
+                        product_ids.append(product['id'])
+                
+                logger.info(f"Found {len(product_ids)} product IDs in shared context")
+                
+                # Get product reviews for shared products
+                product_reviews = {}
+                if product_ids:
+                    product_reviews = GetProductReviewsTool(
+                        dynamodb=self.rm.dynamodb_resource,
+                        reviews_table=self.rm.reviews_table_name
+                    ).execute(product_ids[:10])  # Limit to 10 products
+                    logger.info(f"Retrieved reviews for {len(product_reviews)} products")
+                
+                # Add shared context to prompt
+                context_info = self.get_context_for_prompt()
+                enhanced_prompt = PRODUCT_DETAILS_PROMPT.format(
+                    user_persona=self.user_persona,
+                    user_discount_persona=self.user_discount_persona,
+                    product_reviews=product_reviews
+                )
+                if context_info:
+                    enhanced_prompt += f"\n\nShared Context:\n{context_info}"
+
+                response = self.rm.bedrock_client.converse_stream(
+                    modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+                    messages=self._add_cache_control_to_messages(messages),
+                    system=[{"text": enhanced_prompt}, {"cachePoint": {"type": "default"}}],
+                )
+
+                for event in response['stream']:
+                    if 'contentBlockDelta' in event and 'delta' in event['contentBlockDelta']:
+                        delta = event['contentBlockDelta']['delta']
+                        if 'text' in delta:
+                            text_chunk = delta['text']
+                            # Record first token for performance monitoring
+                            perf_monitor.record_streaming_token(text_chunk)
+                            stream_parser.parse_chunk(text_chunk)
+                    elif 'metadata' in event:
+                        # Update token usage from metadata
+                        if 'usage' in event['metadata']:
+                            perf_monitor.update_token_usage(event['metadata']['usage'])
+                
+                stream_parser.finalize()
+                
+                if stream_parser.complete_response:
+                    self.save_message_to_handler('assistant', stream_parser.complete_response, {
+                        'response_type': 'product_details',
+                        'referenced_products': product_ids[:5]  # Track which products were referenced
+                    })
+                    
+            except Exception as e:
+                logger.error(f"Error handling product details: {str(e)}")
+                self.send_error_message("processing your request")
 
 
 class CompareProductsHandler(BaseMessageHandler):
@@ -670,7 +673,7 @@ class CompareProductsHandler(BaseMessageHandler):
                 response = self.rm.bedrock_client.converse_stream(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
                     messages=self._add_cache_control_to_messages(messages),
-                    system=[{"text": COMPARE_PRODUCTS_PROMPT, "cacheControl": {"type": "ephemeral"}}],
+                    system=[{"text": COMPARE_PRODUCTS_PROMPT}, {"cachePoint": {"type": "default"}}],
                     toolConfig=tool_config
                 )
                 
@@ -837,7 +840,7 @@ class CompareProductsHandler(BaseMessageHandler):
                 continuation_response = self.rm.bedrock_client.converse_stream(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
                     messages=self._add_cache_control_to_messages(messages),
-                    system=[{"text": COMPARE_PRODUCTS_PROMPT, "cacheControl": {"type": "ephemeral"}}],
+                    system=[{"text": COMPARE_PRODUCTS_PROMPT}, {"cachePoint": {"type": "default"}}],
                     toolConfig=tool_config
                 )
                 

@@ -388,18 +388,21 @@ class StrandsShoppingAgent:
                 if isinstance(message.get('content'), list):
                     # Find the last content block and add cache control
                     for content_block in reversed(message['content']):
-                        if isinstance(content_block, dict):
-                            content_block['cacheControl'] = {'type': 'ephemeral'}
+                        if isinstance(content_block, dict) and 'text' in content_block:
+                            # Add cachePoint as a separate content block after the text
                             break
+                    # Add the cachePoint as a separate content block
+                    message['content'].append({'cachePoint': {'type': 'default'}})
                 elif isinstance(message.get('content'), str):
                     # Convert string content to list format with cache control
                     message['content'] = [
-                        {'text': message['content'], 'cacheControl': {'type': 'ephemeral'}}
+                        {'text': message['content']},
+                        {'cachePoint': {'type': 'default'}}
                     ]
                 elif 'content' not in message and 'role' in message:
                     # Handle cases where message might have different structure
-                    # Add cache control directly to the message
-                    message['cacheControl'] = {'type': 'ephemeral'}
+                    # Add content with cache control
+                    message['content'] = [{'cachePoint': {'type': 'default'}}]
         
         logger.info(f"Added cache control to agent messages: {len(cached_messages)} total, "
                    f"cache cutoff at message {cache_cutoff}")

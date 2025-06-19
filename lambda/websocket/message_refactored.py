@@ -139,32 +139,6 @@ def handler(event, context):
                     )
                 except Exception as send_error:
                     logger.error(f"Failed to send error message: {str(send_error)}")
-                
-                # Route the message
-                assistant_number = router.route_message(user_context.get('use_agent', False))
-                
-                # Map assistant numbers to handler names for better display
-                handler_names = {
-                    "1": "Order History Handler",
-                    "2": "Product Search Handler", 
-                    "3": "Product Details Handler",
-                    "4": "General Inquiry Handler",
-                    "5": "Compare Products Handler"
-                }
-                
-                handler_name = handler_names.get(str(assistant_number), f"Handler {assistant_number}")
-                routing_decision = f"Routed to {handler_name} (#{assistant_number})"
-                routing_reasoning = f"Claude determined that assistant #{assistant_number} should handle: '{user_context['user_message'][:100]}...'"
-                
-                # Save routing decision
-                router.save_message_to_handler('system', routing_decision, {
-                    'type': 'routing_decision',
-                    'assistant_number': assistant_number,
-                    'handler_name': handler_name,
-                    'user_message': user_context['user_message'],
-                    'routing_reasoning': routing_reasoning,
-                    'timestamp': router.get_timestamp()
-                })
         
         return {'statusCode': 200, 'body': 'Message processed successfully'}
         
