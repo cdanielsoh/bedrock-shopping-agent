@@ -137,53 +137,84 @@ class BaseMessageHandler:
     
     def get_context_for_prompt(self) -> str:
         """
-        Get shared context formatted for inclusion in prompts.
+        Get shared context formatted for inclusion in prompts with timestamps.
         This allows handlers to be aware of cross-handler context without message contamination.
         """
-        if not hasattr(self, 'shared_context'):
-            return ""
-        
-        context_parts = []
-        
-        # Add recent products context
-        products = self.shared_context.get('products', [])
-        if products:
-            recent_products = products[-5:]  # Last 5 products
-            product_info = []
-            for product in recent_products:
-                if isinstance(product, dict) and 'id' in product:
-                    product_info.append(f"- {product.get('name', 'Unknown')} (ID: {product['id']})")
+        try:
+            # Use the new timestamped context method
+            timestamped_context = self.conversation_manager.get_timestamped_context_for_llm(self.session_id)
+            return f"\n\n{timestamped_context}" if timestamped_context and timestamped_context != "No previous context available for this session." else ""
+        except Exception as e:
+            logger.error(f"Error getting timestamped context: {str(e)}")
+            # Fallback to old method if there's an error
+            if not hasattr(self, 'shared_context'):
+                return ""
             
-            if product_info:
-                context_parts.append(f"Recent products discussed:\n" + "\n".join(product_info))
-        
-        # Add recent orders context
-        orders = self.shared_context.get('orders', [])
-        if orders:
-            recent_orders = orders[-3:]  # Last 3 orders
-            order_info = []
-            for order in recent_orders:
-                if isinstance(order, dict) and 'order_id' in order:
-                    order_info.append(f"- Order {order['order_id']} ({order.get('status', 'unknown status')})")
+            context_parts = []
             
-            if order_info:
-                context_parts.append(f"Recent orders discussed:\n" + "\n".join(order_info))
-        
-        # Add user preferences
-        preferences = self.shared_context.get('user_preferences', {})
-        if preferences:
-            pref_info = []
-            for key, value in preferences.items():
-                pref_info.append(f"- {key}: {value}")
+            # Add recent products context
+            products = self.shared_context.get('products', [])
+            if products:
+                recent_products = products[-5:]  # Last 5 products
+                product_info = []
+                for product in recent_products:
+                    if isinstance(product, dict) and 'id' in product:
+                        product_info.append(f"- {product.get('name', 'Unknown')} (ID: {product['id']})")
+                
+                if product_info:
+                    context_parts.append(f"Recent products discussed:\n" + "\n".join(product_info))
             
-            if pref_info:
-                context_parts.append(f"User preferences:\n" + "\n".join(pref_info))
-        
-        return "\n\n".join(context_parts) if context_parts else ""
+            # Add recent orders context
+            orders = self.shared_context.get('orders', [])
+            if orders:
+                recent_orders = orders[-3:]  # Last 3 orders
+                order_info = []
+                for order in recent_orders:
+                    if isinstance(order, dict) and 'order_id' in order:
+                        order_info.append(f"- Order {order['order_id']} ({order.get('status', 'unknown status')})")
+                
+                if order_info:
+                    context_parts.append(f"Recent orders discussed:\n" + "\n".join(order_info))
+            
+            return "\n\n".join(context_parts) if context_parts else ""
     
     def get_timestamp(self) -> str:
         """Get current timestamp in ISO format."""
         return datetime.now(timezone.utc).isoformat()
+    
+    def _add_cache_control_to_messages(self, messages: List[Dict]) -> List[Dict]:
+        """
+        Add cache control to messages for prompt caching optimization.
+        Cache older messages and leave recent ones uncached for efficiency.
+        """
+        if not messages:
+            return messages
+        
+        # Make a deep copy to avoid modifying original messages
+        import copy
+        cached_messages = copy.deepcopy(messages)
+        
+        # Strategy: Cache all but the last 2 messages (recent conversation)
+        # This balances cache efficiency with conversation freshness
+        cache_cutoff = max(0, len(cached_messages) - 2)
+        
+        for i, message in enumerate(cached_messages):
+            # Add cache control to messages before the cutoff
+            if i == cache_cutoff - 1 and cache_cutoff > 0:
+                # Mark the last message to be cached as a cache breakpoint
+                if isinstance(message.get('content'), list):
+                    # Find the last content block and add cache control
+                    for content_block in reversed(message['content']):
+                        if isinstance(content_block, dict):
+                            content_block['cacheControl'] = {'type': 'ephemeral'}
+                            break
+                elif isinstance(message.get('content'), str):
+                    # Convert string content to list format with cache control
+                    message['content'] = [
+                        {'text': message['content'], 'cacheControl': {'type': 'ephemeral'}}
+                    ]
+        
+        return cached_messages
 
 
 class RouterHandler(BaseMessageHandler):
@@ -288,8 +319,8 @@ class OrderHistoryHandler(BaseMessageHandler):
                 
                 response = self.rm.bedrock_client.converse_stream(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                    messages=messages,
-                    system=[{"text": enhanced_prompt}],
+                    messages=self._add_cache_control_to_messages(messages),
+                    system=[{"text": enhanced_prompt, "cacheControl": {"type": "ephemeral"}}],
                 )
                 
                 for event in response['stream']:
@@ -397,22 +428,10 @@ class ProductSearchHandler(BaseMessageHandler):
             
             # Update shared context with products (for other handlers to reference)
             if search_results:
-                product_context = []
-                for result in search_results[:10]:  # Limit to top 10
-                    product_context.append({
-                        'id': result['_source']['id'],
-                        'name': result['_source']['name'],
-                        'price': result['_source']['price'],
-                        'category': result['_source'].get('category', 'unknown')
-                    })
-                
                 # Update search history and products
                 self.update_shared_context({
-                    'products': product_context,
-                    'search_history': tool_input["query_keywords"],
-                    'user_preferences': {
-                        'last_search_category': product_context[0].get('category') if product_context else None
-                    }
+                    'products': search_results,
+                    'search_history': tool_input["query_keywords"]
                 })
             
             # Build tool result message
@@ -458,8 +477,8 @@ class ProductSearchHandler(BaseMessageHandler):
             
             final_response = self.rm.bedrock_client.converse_stream(
                 modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                messages=messages,
-                system=[{"text": enhanced_prompt}],
+                messages=self._add_cache_control_to_messages(messages),
+                system=[{"text": enhanced_prompt, "cacheControl": {"type": "ephemeral"}}],
                 toolConfig=tool_config
             )
             
@@ -519,8 +538,8 @@ class GeneralInquiryHandler(BaseMessageHandler):
                 
                 response = self.rm.bedrock_client.converse_stream(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                    messages=messages,
-                    system=[{"text": enhanced_prompt}],
+                    messages=self._add_cache_control_to_messages(messages),
+                    system=[{"text": enhanced_prompt, "cacheControl": {"type": "ephemeral"}}],
                 )
                 
                 for event in response['stream']:
@@ -597,8 +616,8 @@ class ProductDetailsHandler(BaseMessageHandler):
 
             response = self.rm.bedrock_client.converse_stream(
                 modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                messages=messages,
-                system=[{"text": enhanced_prompt}],
+                messages=self._add_cache_control_to_messages(messages),
+                system=[{"text": enhanced_prompt, "cacheControl": {"type": "ephemeral"}}],
             )
 
             for event in response['stream']:
@@ -650,8 +669,8 @@ class CompareProductsHandler(BaseMessageHandler):
                 """Handle streaming response with tool call detection and execution"""
                 response = self.rm.bedrock_client.converse_stream(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                    messages=messages,
-                    system=[{"text": COMPARE_PRODUCTS_PROMPT}],
+                    messages=self._add_cache_control_to_messages(messages),
+                    system=[{"text": COMPARE_PRODUCTS_PROMPT, "cacheControl": {"type": "ephemeral"}}],
                     toolConfig=tool_config
                 )
                 
@@ -817,8 +836,8 @@ class CompareProductsHandler(BaseMessageHandler):
                 # Continue with streaming after tool execution
                 continuation_response = self.rm.bedrock_client.converse_stream(
                     modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                    messages=messages,
-                    system=[{"text": COMPARE_PRODUCTS_PROMPT}],
+                    messages=self._add_cache_control_to_messages(messages),
+                    system=[{"text": COMPARE_PRODUCTS_PROMPT, "cacheControl": {"type": "ephemeral"}}],
                     toolConfig=tool_config
                 )
                 

@@ -72,8 +72,8 @@ class StrandsShoppingAgent:
                     existing_messages = self.conversation_manager.load_agent_messages(session_id)
                     
                     if existing_messages:
-                        agent.messages = existing_messages
-                        print(f"Loaded {len(existing_messages)} messages for session {session_id}")
+                        agent.messages = self._add_cache_control_to_agent_messages(existing_messages)
+                        print(f"Loaded {len(existing_messages)} messages for session {session_id} with cache control")
                 
                 # Send initial status
                 self._send_status_message(f"AI agent ({agent_type}) is processing your request...")
@@ -364,6 +364,46 @@ class StrandsShoppingAgent:
             
         except Exception as e:
             logger.error(f"Error saving to chat history: {e}")
+    
+    def _add_cache_control_to_agent_messages(self, messages: List[Dict]) -> List[Dict]:
+        """
+        Add cache control to agent messages for prompt caching optimization.
+        Cache older messages and leave recent ones uncached for efficiency.
+        """
+        if not messages:
+            return messages
+        
+        # Make a deep copy to avoid modifying original messages
+        import copy
+        cached_messages = copy.deepcopy(messages)
+        
+        # Strategy: Cache all but the last 2 messages (recent conversation)
+        # This balances cache efficiency with conversation freshness
+        cache_cutoff = max(0, len(cached_messages) - 2)
+        
+        for i, message in enumerate(cached_messages):
+            # Add cache control to the last message to be cached
+            if i == cache_cutoff - 1 and cache_cutoff > 0:
+                # Mark the last message to be cached as a cache breakpoint
+                if isinstance(message.get('content'), list):
+                    # Find the last content block and add cache control
+                    for content_block in reversed(message['content']):
+                        if isinstance(content_block, dict):
+                            content_block['cacheControl'] = {'type': 'ephemeral'}
+                            break
+                elif isinstance(message.get('content'), str):
+                    # Convert string content to list format with cache control
+                    message['content'] = [
+                        {'text': message['content'], 'cacheControl': {'type': 'ephemeral'}}
+                    ]
+                elif 'content' not in message and 'role' in message:
+                    # Handle cases where message might have different structure
+                    # Add cache control directly to the message
+                    message['cacheControl'] = {'type': 'ephemeral'}
+        
+        logger.info(f"Added cache control to agent messages: {len(cached_messages)} total, "
+                   f"cache cutoff at message {cache_cutoff}")
+        return cached_messages
 
 
 def create_strands_agent_handler(connection_id: str, apigw_management, user_context: Dict[str, Any], request_start_time: float = None) -> StrandsShoppingAgent:

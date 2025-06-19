@@ -199,16 +199,30 @@ class ConversationManager:
             if 'products' in context_updates:
                 products = context_updates['products']
                 if products:
+                    # Add timestamp to each product for recency tracking
+                    timestamped_products = []
+                    for product in products:
+                        timestamped_product = dict(product) if isinstance(product, dict) else {'product': product}
+                        timestamped_product['saved_at'] = timestamp
+                        timestamped_products.append(timestamped_product)
+                    
                     update_expression_parts.append("products = list_append(if_not_exists(products, :empty_list_products), :new_products)")
-                    expression_values[':new_products'] = products
+                    expression_values[':new_products'] = timestamped_products
                     expression_values[':empty_list_products'] = []
             
             # Handle orders update
             if 'orders' in context_updates:
                 orders = context_updates['orders']
                 if orders:
+                    # Add timestamp to each order for recency tracking
+                    timestamped_orders = []
+                    for order in orders:
+                        timestamped_order = dict(order) if isinstance(order, dict) else {'order': order}
+                        timestamped_order['saved_at'] = timestamp
+                        timestamped_orders.append(timestamped_order)
+                    
                     update_expression_parts.append("orders = list_append(if_not_exists(orders, :empty_list_orders), :new_orders)")
-                    expression_values[':new_orders'] = orders
+                    expression_values[':new_orders'] = timestamped_orders
                     expression_values[':empty_list_orders'] = []
             
             # Handle user preferences - Set entire map (simple approach)
@@ -225,8 +239,18 @@ class ConversationManager:
                     # Ensure search_terms is a list
                     if not isinstance(search_terms, list):
                         search_terms = [search_terms]
+                    
+                    # Add timestamp to each search term for recency tracking
+                    timestamped_searches = []
+                    for search_term in search_terms:
+                        timestamped_search = {
+                            'query': search_term,
+                            'searched_at': timestamp
+                        }
+                        timestamped_searches.append(timestamped_search)
+                    
                     update_expression_parts.append("search_history = list_append(if_not_exists(search_history, :empty_list_search), :new_searches)")
-                    expression_values[':new_searches'] = search_terms
+                    expression_values[':new_searches'] = timestamped_searches
                     expression_values[':empty_list_search'] = []
             
             if len(update_expression_parts) > 2:  # More than just timestamp and ttl
@@ -285,6 +309,60 @@ class ConversationManager:
         except Exception as e:
             logger.error(f"Error getting conversation summary: {str(e)}")
             return {'session_id': session_id, 'error': str(e)}
+    
+    def get_timestamped_context_for_llm(self, session_id: str) -> str:
+        """
+        Get shared context formatted for LLM with timestamps for recency awareness.
+        Returns a formatted string that includes when items were searched/accessed.
+        """
+        try:
+            context = self.get_shared_context(session_id)
+            current_time = datetime.now(timezone.utc).isoformat()
+            
+            context_parts = [f"Current time: {current_time}"]
+            
+            # Format products with timestamps
+            if context.get('products'):
+                context_parts.append("Recently viewed products:")
+                for product in context['products'][-10:]:  # Last 10 products
+                    saved_at = product.get('saved_at', 'unknown time')
+                    if isinstance(product.get('_source'), dict):
+                        product_info = product['_source']
+                        product_id = product_info.get('id', 'unknown')
+                        product_name = product_info.get('name', 'Unknown Product')
+                        context_parts.append(f"- {product_name} (ID: {product_id}) - searched at {saved_at}")
+                    else:
+                        context_parts.append(f"- Product searched at {saved_at}")
+            
+            # Format orders with timestamps
+            if context.get('orders'):
+                context_parts.append("\nRecent order references:")
+                for order in context['orders'][-5:]:  # Last 5 orders
+                    saved_at = order.get('saved_at', 'unknown time')
+                    order_id = order.get('order_id', 'unknown')
+                    context_parts.append(f"- Order {order_id} - accessed at {saved_at}")
+            
+            # Format search history with timestamps
+            if context.get('search_history'):
+                context_parts.append("\nRecent search queries:")
+                for search in context['search_history'][-5:]:  # Last 5 searches
+                    if isinstance(search, dict):
+                        query = search.get('query', 'unknown query')
+                        searched_at = search.get('searched_at', 'unknown time')
+                        context_parts.append(f"- '{query}' - searched at {searched_at}")
+                    else:
+                        # Handle old format without timestamps
+                        context_parts.append(f"- '{search}' - time unknown")
+            
+            if len(context_parts) > 1:  # More than just current time
+                context_parts.insert(1, "Previous session context:")  # Insert after current time
+                return "\n".join(context_parts)
+            else:
+                return f"Current time: {current_time}\nNo previous context available for this session."
+                
+        except Exception as e:
+            logger.error(f"Error formatting timestamped context: {str(e)}")
+            return "Error retrieving session context."
         
 
 def create_conversation_manager(region: str = None) -> ConversationManager:

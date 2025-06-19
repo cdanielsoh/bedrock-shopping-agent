@@ -135,6 +135,7 @@ class GetProductReviewsTool(Tool):
         Returns:
             Dictionary mapping product IDs to their review data
         """
+        product_ids = list(set(product_ids))
         logger.info(f"Executing get product reviews with product IDs: {product_ids}")
         try:
             # BatchGetItem can retrieve up to 100 items at once
