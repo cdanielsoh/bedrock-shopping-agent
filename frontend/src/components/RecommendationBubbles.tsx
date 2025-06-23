@@ -7,19 +7,23 @@ interface RecommendationBubblesProps {
   user: User | null;
   onRecommendationClick: (recommendation: string) => void;
   isVisible: boolean;
+  sessionId?: string;
 }
 
-const RecommendationBubbles = ({ user, onRecommendationClick, isVisible }: RecommendationBubblesProps) => {
+const RecommendationBubbles = ({ user, onRecommendationClick, isVisible, sessionId }: RecommendationBubblesProps) => {
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     if (isVisible && user) {
+      setIsAnimating(true);
       fetchRecommendations(false); // Don't force refresh on user change
+      setTimeout(() => setIsAnimating(false), 400);
     }
-  }, [user, isVisible]); // Remove refreshCount from dependencies
+  }, [user, isVisible, sessionId]); // Include sessionId in dependencies
 
   useEffect(() => {
     if (isVisible && user && refreshCount > 0) {
@@ -32,7 +36,7 @@ const RecommendationBubbles = ({ user, onRecommendationClick, isVisible }: Recom
     
     setLoading(true);
     try {
-      const recs = await RecommendationsService.getRecommendations(user, forceRefresh);
+      const recs = await RecommendationsService.getRecommendations(user, forceRefresh, sessionId);
       setRecommendations(recs);
       if (forceRefresh) {
         setLastRefreshTime(new Date());
@@ -139,7 +143,7 @@ const RecommendationBubbles = ({ user, onRecommendationClick, isVisible }: Recom
   }
 
   return (
-    <div className="recommendation-bubbles">
+    <div className={`recommendation-bubbles ${isAnimating ? 'slide-in' : ''}`}>
       <div className="bubbles-header">
         <div className="bubbles-title-row">
           <span className="bubbles-title">💡 Try asking:</span>

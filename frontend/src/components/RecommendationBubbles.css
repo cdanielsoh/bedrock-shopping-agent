@@ -4,6 +4,8 @@
   background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
   border-radius: 12px;
   border: 1px solid #e1e5f0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top center;
 }
 
 .bubbles-header {
@@ -106,36 +108,38 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  transition: all 0.3s ease;
 }
 
 .recommendation-bubble {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
   border: none;
   border-radius: 20px;
-  padding: 10px 16px;
+  padding: 12px 18px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   text-align: center;
-  min-height: 40px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
   line-height: 1.2;
+  backdrop-filter: blur(10px);
 }
 
 .recommendation-bubble:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, #5b5ee7 0%, #8447ff 100%);
 }
 
 .recommendation-bubble:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
 .loading-bubbles {
@@ -203,7 +207,7 @@
 
 /* Animation for when bubbles appear */
 .recommendation-bubble {
-  animation: bubbleAppear 0.3s ease-out;
+  animation: bubbleAppear 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .recommendation-bubble:nth-child(1) { animation-delay: 0.1s; }
@@ -214,11 +218,49 @@
 @keyframes bubbleAppear {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.9);
+    transform: translateY(20px) scale(0.8) rotateX(-10deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+  }
+}
+
+/* Slide out animation when suggestions are toggled off */
+.recommendation-bubbles.slide-out {
+  animation: slideOut 0.3s ease-in forwards;
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    max-height: 200px;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Slide in animation when suggestions are toggled on */
+.recommendation-bubbles.slide-in {
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+    max-height: 0;
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+    max-height: 200px;
   }
 }
 

@@ -6,9 +6,10 @@ interface SessionManagerProps {
   currentSessionId: string;
   onSessionChange: (sessionId: string) => void;
   userId?: string; // Add userId prop
+  isAgentMode?: boolean; // Add agent mode prop
 }
 
-const SessionManagerComponent = ({ currentSessionId, onSessionChange, userId }: SessionManagerProps) => {
+const SessionManagerComponent = ({ currentSessionId, onSessionChange, userId, isAgentMode }: SessionManagerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -78,9 +79,9 @@ const SessionManagerComponent = ({ currentSessionId, onSessionChange, userId }: 
 
   const handleNewSession = async () => {
     const effectiveUserId = userId || 'default-user';
-    console.log(`🚀 Creating new session for user: ${effectiveUserId}`);
+    console.log(`🚀 Creating new session for user: ${effectiveUserId}, agentMode: ${isAgentMode}`);
     
-    const newSessionId = await SessionManager.startNewSession(effectiveUserId);
+    const newSessionId = await SessionManager.startNewSession(effectiveUserId, isAgentMode);
     console.log(`✨ New session created: ${newSessionId}`);
     
     onSessionChange(newSessionId);
@@ -180,10 +181,14 @@ const SessionManagerComponent = ({ currentSessionId, onSessionChange, userId }: 
                   onClick={() => handleSessionSelect(session.sessionId)}
                 >
                   <div className="session-info">
-                    <div className="session-title">{session.title}</div>
+                    <div className="session-title">
+                      {session.isAgentMode && <span className="agent-indicator">🤖 </span>}
+                      {session.title}
+                    </div>
                     <div className="session-meta">
                       <span className="session-id">{truncateSessionId(session.sessionId)}</span>
                       <span className="session-date">{formatDate(session.lastUsed)}</span>
+                      {session.isAgentMode && <span className="session-mode">Agent Mode</span>}
                     </div>
                   </div>
                   {sessions.length > 1 && (

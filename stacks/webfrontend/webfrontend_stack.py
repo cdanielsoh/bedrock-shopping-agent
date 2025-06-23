@@ -117,49 +117,6 @@ class WebFrontendStack(cdk.Stack):
             projection_type=dynamodb.ProjectionType.ALL
         )
 
-        # Keep the original chat history table for backward compatibility during migration
-        # Create DynamoDB table to store chat history
-        chat_history_table = dynamodb.Table(
-            self, 'ChatHistoryTable',
-            partition_key=dynamodb.Attribute(
-                name='user_id',
-                type=dynamodb.AttributeType.STRING
-            ),
-            sort_key=dynamodb.Attribute(
-                name='timestamp',
-                type=dynamodb.AttributeType.STRING
-            ),
-            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
-            removal_policy=cdk.RemovalPolicy.DESTROY,
-            time_to_live_attribute='ttl'  # Auto-cleanup old messages
-        )
-
-        # Add GSI for session-based queries
-        chat_history_table.add_global_secondary_index(
-            index_name='SessionIndex',
-            partition_key=dynamodb.Attribute(
-                name='session_id',
-                type=dynamodb.AttributeType.STRING
-            ),
-            sort_key=dynamodb.Attribute(
-                name='timestamp',
-                type=dynamodb.AttributeType.STRING
-            )
-        )
-
-        # Add GSI for connection-based queries (optional)
-        chat_history_table.add_global_secondary_index(
-            index_name='ConnectionIndex',
-            partition_key=dynamodb.Attribute(
-                name='connection_id',
-                type=dynamodb.AttributeType.STRING
-            ),
-            sort_key=dynamodb.Attribute(
-                name='timestamp',
-                type=dynamodb.AttributeType.STRING
-            )
-        )
-
         # Create DynamoDB table to store chat recommendations
         chat_recommendations_table = dynamodb.Table(
             self, 'ChatRecommendationsTable',
@@ -302,7 +259,6 @@ class WebFrontendStack(cdk.Stack):
             environment={
                 'REGION': self.region,
                 'CONNECTIONS_TABLE': connections_table.table_name,
-                'CHAT_HISTORY_TABLE': chat_history_table.table_name,
                 'CONVERSATIONS_TABLE': conversations_table.table_name,
                 'SHARED_CONTEXT_TABLE': shared_context_table.table_name,
                 'PERFORMANCE_METRICS_TABLE': performance_metrics_table.table_name,
@@ -346,8 +302,10 @@ class WebFrontendStack(cdk.Stack):
             environment={
                 'REGION': self.region,
                 'CHAT_RECOMMENDATIONS_TABLE': chat_recommendations_table.table_name,
-                'CHAT_HISTORY_TABLE': chat_history_table.table_name,
                 'USER_TABLE': users_table_name,
+                'AGENT_CONVERSATIONS_TABLE': agent_conversations_table.table_name,
+                'CONVERSATIONS_TABLE': conversations_table.table_name,
+                'SESSIONS_TABLE': user_sessions_table.table_name,
             },
             timeout=Duration.minutes(2),
             memory_size=512
@@ -358,10 +316,6 @@ class WebFrontendStack(cdk.Stack):
         connections_table.grant_read_write_data(disconnect_function)
         connections_table.grant_read_write_data(message_function)
 
-        # Grant chat history table permissions
-        chat_history_table.grant_read_write_data(message_function)
-        chat_history_table.grant_read_data(recommend_chat_function)
-        
         # Grant hybrid conversation tables permissions
         conversations_table.grant_read_write_data(message_function)
         shared_context_table.grant_read_write_data(message_function)
@@ -376,6 +330,13 @@ class WebFrontendStack(cdk.Stack):
         
         # Grant chat recommendations table permissions
         chat_recommendations_table.grant_read_write_data(recommend_chat_function)
+        
+        # Grant sessions table permissions to recommend_chat_function
+        user_sessions_table.grant_read_data(recommend_chat_function)
+        
+        # Grant conversations table permissions to recommend_chat_function
+        conversations_table.grant_read_data(recommend_chat_function)
+        agent_conversations_table.grant_read_data(recommend_chat_function)
 
         # Grant Bedrock permissions to Lambda functions
         bedrock_policy = iam.PolicyStatement(
@@ -730,21 +691,7 @@ class WebFrontendStack(cdk.Stack):
             description='URL of the product images CDN',
         )
 
-        # Export values for potential future use
-        cdk.CfnOutput(
-            self, 'ChatHistoryTableName',
-            value=chat_history_table.table_name,
-            export_name=f'{self.stack_name}-ChatHistoryTableName'
-        )
-
-        cdk.CfnOutput(
-            self, 'ChatHistoryTableArn',
-            value=chat_history_table.table_arn,
-            export_name=f'{self.stack_name}-ChatHistoryTableArn'
-        )
-
         # Store references for potential future use
-        self.chat_history_table = chat_history_table
         self.chat_recommendations_table = chat_recommendations_table
         self.http_api = http_api
         self.websocket_api = websocket_api

@@ -96,7 +96,8 @@ def get_user_sessions(user_id: str):
                 'title': item.get('title', f"Session {item['created_at'][:10]}"),
                 'createdAt': item['created_at'],
                 'lastUsed': item['last_used'],
-                'messageCount': int(item.get('message_count', 0))
+                'messageCount': int(item.get('message_count', 0)),
+                'isAgentMode': bool(item.get('is_agent_mode', False))
             })
         
         print(f"Found {len(sessions)} sessions for user {user_id}")
@@ -115,6 +116,7 @@ def create_session(data: Dict[str, Any]):
         session_id = data.get('sessionId')
         user_id = data.get('userId')
         title = data.get('title', f"Session {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        is_agent_mode = bool(data.get('isAgentMode', False))
         
         if not session_id or not user_id:
             return create_response(400, {'error': 'sessionId and userId are required'})
@@ -127,6 +129,7 @@ def create_session(data: Dict[str, Any]):
                 'created_at': now,
                 'last_used': now,
                 'message_count': 0,
+                'is_agent_mode': is_agent_mode,
                 'ttl': int(datetime.now(timezone.utc).timestamp()) + (30 * 24 * 60 * 60)  # 30 days
             }
         )

@@ -11,6 +11,7 @@ export interface SessionInfo {
   createdAt: string;
   lastUsed: string;
   title: string;
+  isAgentMode?: boolean;
 }
 
 export class SessionManager {
@@ -37,7 +38,7 @@ export class SessionManager {
    * Get current session ID for a specific user or create new one
    * Now uses DynamoDB as primary storage, localStorage as fallback only
    */
-  static async getCurrentSessionId(userId?: string): Promise<string> {
+  static async getCurrentSessionId(userId?: string, currentAgentMode?: boolean): Promise<string> {
     console.log(`🔍 SessionManager.getCurrentSessionId called with userId: ${userId}`);
     
     if (userId && this.sessionApi) {
@@ -56,7 +57,7 @@ export class SessionManager {
           // No sessions found, create a new one
           console.log(`✨ No sessions found in DynamoDB, creating new session`);
           const newSessionId = this.generateSessionId();
-          await this.createSessionInDynamoDB(newSessionId, userId);
+          await this.createSessionInDynamoDB(newSessionId, userId, currentAgentMode || false); // Use provided agent mode or default to false
           return newSessionId;
         }
       } catch (error) {
@@ -93,16 +94,16 @@ export class SessionManager {
   /**
    * Create a new session in DynamoDB
    */
-  private static async createSessionInDynamoDB(sessionId: string, userId: string): Promise<void> {
+  private static async createSessionInDynamoDB(sessionId: string, userId: string, isAgentMode?: boolean): Promise<void> {
     if (!this.sessionApi) {
       throw new Error('Session API not initialized');
     }
     
-    console.log(`🌐 Creating session in DynamoDB: ${sessionId} for user: ${userId}`);
+    console.log(`🌐 Creating session in DynamoDB: ${sessionId} for user: ${userId}, agentMode: ${isAgentMode}`);
     const title = `Session ${new Date().toLocaleString()}`;
     
     try {
-      const success = await this.sessionApi.createSession(sessionId, userId, title);
+      const success = await this.sessionApi.createSession(sessionId, userId, title, isAgentMode);
       if (success) {
         console.log(`✅ Session created successfully in DynamoDB`);
       } else {
@@ -126,8 +127,8 @@ export class SessionManager {
    * Start a new session for a specific user (clear current)
    * Now creates session in DynamoDB first, localStorage as backup
    */
-  static async startNewSession(userId?: string): Promise<string> {
-    console.log(`🚀 SessionManager.startNewSession called with userId: ${userId}`);
+  static async startNewSession(userId?: string, isAgentMode?: boolean): Promise<string> {
+    console.log(`🚀 SessionManager.startNewSession called with userId: ${userId}, agentMode: ${isAgentMode}`);
     
     const newSessionId = this.generateSessionId();
     console.log(`✨ Generated new session ID: ${newSessionId}`);
@@ -135,7 +136,7 @@ export class SessionManager {
     if (userId && this.sessionApi) {
       try {
         // Create session in DynamoDB first
-        await this.createSessionInDynamoDB(newSessionId, userId);
+        await this.createSessionInDynamoDB(newSessionId, userId, isAgentMode);
         console.log(`✅ Session created in DynamoDB: ${newSessionId}`);
         
         // Also update localStorage for immediate access
@@ -203,7 +204,8 @@ export class SessionManager {
           sessionId: session.sessionId,
           createdAt: session.createdAt,
           lastUsed: session.lastUsed,
-          title: session.title
+          title: session.title,
+          isAgentMode: session.isAgentMode
         }));
       } catch (error) {
         console.warn('Failed to get sessions from API, falling back to localStorage:', error);
@@ -312,6 +314,63 @@ export class SessionManager {
     }
   }
   
+  /**
+   * Get session info including agent mode
+   */
+  static async getSessionInfo(sessionId: string, userId?: string): Promise<SessionInfo | null> {
+    if (this.sessionApi && userId) {
+      try {
+        const sessions = await this.sessionApi.getUserSessions(userId);
+        const session = sessions.find(s => s.sessionId === sessionId);
+        if (session) {
+          return {
+            sessionId: session.sessionId,
+            createdAt: session.createdAt,
+            lastUsed: session.lastUsed,
+            title: session.title,
+            isAgentMode: session.isAgentMode
+          };
+        }
+      } catch (error) {
+        console.warn('Failed to get session info from API:', error);
+      }
+    }
+    
+    // Fallback to localStorage
+    const history = await this.getSessionHistory(userId);
+    return history.find(s => s.sessionId === sessionId) || null;
+  }
+
+  /**
+   * Update session agent mode
+   */
+  static async updateSessionAgentMode(sessionId: string, userId: string, isAgentMode: boolean): Promise<void> {
+    console.log(`🤖 Updating session agent mode: ${sessionId} to ${isAgentMode}`);
+    
+    if (this.sessionApi) {
+      try {
+        const success = await this.sessionApi.updateSession(sessionId, { isAgentMode });
+        if (success) {
+          console.log(`✅ Session agent mode updated in DynamoDB`);
+        } else {
+          console.warn(`⚠️ Failed to update session agent mode in DynamoDB`);
+        }
+      } catch (error) {
+        console.error(`❌ Error updating session agent mode:`, error);
+      }
+    }
+    
+    // Also update localStorage backup
+    const history = await this.getSessionHistory(userId);
+    const sessionIndex = history.findIndex(s => s.sessionId === sessionId);
+    if (sessionIndex >= 0) {
+      history[sessionIndex].isAgentMode = isAgentMode;
+      const historyKey = userId ? `${this.SESSION_HISTORY_KEY}_${userId}` : this.SESSION_HISTORY_KEY;
+      localStorage.setItem(historyKey, JSON.stringify(history));
+      console.log(`💾 Updated session agent mode in localStorage backup`);
+    }
+  }
+
   /**
    * Clear all sessions
    */

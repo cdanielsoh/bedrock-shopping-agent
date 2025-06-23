@@ -32,9 +32,11 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
   const [useAgent, setUseAgent] = useState(false); // New state for agent toggle
   const [showSuggestions, setShowSuggestions] = useState(true); // New state for suggestions toggle
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
+  const [conversationStarted, setConversationStarted] = useState(false); // Track if conversation has started
+  const [isInitializing, setIsInitializing] = useState(true); // Track if we're still loading session data
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Debug log for messages state changes
+  // Debug log for messages state changes and track conversation status
   useEffect(() => {
     console.log("Messages state updated, count:", messages.length);
     // Log any waiting messages
@@ -42,7 +44,15 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
     if (waitingMessages.length > 0) {
       console.log("Current waiting messages:", waitingMessages);
     }
-  }, [messages]);
+    
+    // Check if conversation has started (has any non-waiting messages)
+    const realMessages = messages.filter(msg => !msg.isWaiting);
+    const hasStarted = realMessages.length > 0;
+    if (hasStarted !== conversationStarted) {
+      console.log(`🗣️ Conversation started status changed: ${hasStarted}`);
+      setConversationStarted(hasStarted);
+    }
+  }, [messages, conversationStarted]);
 
   useEffect(() => {
     console.log(`🔧 ChatBox useEffect: Initializing with selectedUserId: ${selectedUserId}`);
@@ -54,14 +64,32 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
     // Initialize session with user ID (now async)
     const initializeSession = async () => {
       try {
-        const sessionId = await SessionManager.getCurrentSessionId(selectedUserId);
+        setIsInitializing(true);
+        const sessionId = await SessionManager.getCurrentSessionId(selectedUserId, useAgent);
         console.log(`🎯 Initial session ID for user ${selectedUserId}: ${sessionId}`);
         setCurrentSessionId(sessionId);
+        
+        // Load session agent mode
+        try {
+          const sessionInfo = await SessionManager.getSessionInfo(sessionId, selectedUserId);
+          if (sessionInfo && typeof sessionInfo.isAgentMode === 'boolean') {
+            console.log(`🤖 Loading initial agent mode for session: ${sessionInfo.isAgentMode}`);
+            setUseAgent(sessionInfo.isAgentMode);
+          } else {
+            console.log(`🤖 No agent mode info found for initial session, keeping current state: ${useAgent}`);
+            // Save current agent mode to the session
+            await SessionManager.updateSessionAgentMode(sessionId, selectedUserId, useAgent);
+          }
+        } catch (error) {
+          console.warn('Failed to load initial session agent mode:', error);
+        }
       } catch (error) {
         console.error('Error initializing session:', error);
         // Fallback to generating a session ID
         const fallbackSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         setCurrentSessionId(fallbackSessionId);
+      } finally {
+        setIsInitializing(false);
       }
     };
     
@@ -181,7 +209,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
       // Get or create session for the selected user (now async)
       const updateUserSession = async () => {
         try {
-          const userSessionId = await SessionManager.getCurrentSessionId(selectedUserId);
+          const userSessionId = await SessionManager.getCurrentSessionId(selectedUserId, useAgent);
           console.log(`🔍 Retrieved session for user ${selectedUserId}: ${userSessionId}`);
           console.log(`🔍 Current session ID: ${currentSessionId}`);
           
@@ -189,6 +217,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
             console.log(`🔄 Session change detected! Old: ${currentSessionId}, New: ${userSessionId}`);
             setCurrentSessionId(userSessionId);
             setMessages([]); // Clear messages when switching to different user's session
+            setConversationStarted(false); // Reset conversation status
             console.log(`✅ Updated session and cleared messages for user ${selectedUserId}`);
           } else {
             console.log(`✨ Session unchanged for user ${selectedUserId}: ${userSessionId}`);
@@ -203,6 +232,14 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
       console.log(`⚠️ No selectedUserId provided`);
     }
   }, [selectedUserId]); // Only depend on selectedUserId to avoid loops
+
+  // Save agent mode when it changes (but not during initialization)
+  useEffect(() => {
+    if (!isInitializing && currentSessionId && selectedUserId) {
+      console.log(`🤖 Agent mode changed to: ${useAgent}, saving to session ${currentSessionId}`);
+      SessionManager.updateSessionAgentMode(currentSessionId, selectedUserId, useAgent);
+    }
+  }, [useAgent, currentSessionId, selectedUserId, isInitializing]);
 
   const sendMessage = () => {
     if (!inputMessage.trim() || !selectedUserId) return;
@@ -262,11 +299,29 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
     console.log(`✅ User change completed, suggestions enabled`);
   };
 
-  const handleSessionChange = (newSessionId: string) => {
+  const handleSessionChange = async (newSessionId: string) => {
     console.log(`🔄 handleSessionChange called: ${newSessionId} (previous: ${currentSessionId})`);
     setCurrentSessionId(newSessionId);
     // Clear current messages when switching sessions
     setMessages([]);
+    // Reset conversation started flag
+    setConversationStarted(false);
+    
+    // Load session agent mode
+    try {
+      const sessionInfo = await SessionManager.getSessionInfo(newSessionId, selectedUserId);
+      if (sessionInfo && typeof sessionInfo.isAgentMode === 'boolean') {
+        console.log(`🤖 Loading agent mode for session: ${sessionInfo.isAgentMode}`);
+        setUseAgent(sessionInfo.isAgentMode);
+      } else {
+        console.log(`🤖 No agent mode info found, defaulting to false`);
+        setUseAgent(false);
+      }
+    } catch (error) {
+      console.warn('Failed to load session agent mode:', error);
+      setUseAgent(false);
+    }
+    
     // Update session last used time with user ID
     console.log(`📝 Updating session last used for user ${selectedUserId}`);
     SessionManager.updateSessionLastUsed(newSessionId, selectedUserId);
@@ -338,6 +393,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
               currentSessionId={currentSessionId}
               onSessionChange={handleSessionChange}
               userId={selectedUserId}
+              isAgentMode={useAgent}
             />
           </div>
         </div>
@@ -383,6 +439,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
           user={selectedUserId ? getUserById(selectedUserId) || null : null}
           onRecommendationClick={handleRecommendationClick}
           isVisible={isConnected && selectedUserId !== '' && showSuggestions}
+          sessionId={currentSessionId}
         />
         
         <div className="chat-input">
@@ -394,11 +451,13 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
                     type="checkbox"
                     checked={useAgent}
                     onChange={(e) => setUseAgent(e.target.checked)}
+                    disabled={conversationStarted || isInitializing}
                   />
                   <span className="toggle-slider"></span>
                 </label>
                 <span className="toggle-label">
-                  {useAgent ? '🤖 Agent Mode' : '💬 Chat Mode'}
+                  {isInitializing ? '⏳ Loading...' : (useAgent ? '🤖 Agent Mode' : '💬 Chat Mode')}
+                  {conversationStarted && !isInitializing && <span className="disabled-note"> (locked)</span>}
                 </span>
               </div>
               <div className="suggestions-toggle">

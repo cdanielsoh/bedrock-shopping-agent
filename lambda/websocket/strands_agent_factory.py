@@ -69,8 +69,7 @@ class StrandsAgentFactory:
                 system_prompt=system_prompt,
                 model=BedrockModel(
                     model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                    cache_prompt="default",
-                    cache_tools="default"
+                    cache_prompt="default"
                 )
             )
     

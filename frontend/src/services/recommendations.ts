@@ -12,8 +12,8 @@ class RecommendationsService {
     this.apiUrl = 'https://mselacy07a.execute-api.us-west-2.amazonaws.com';
   }
 
-  async getRecommendations(user: User, forceRefresh: boolean = false): Promise<string[]> {
-    console.log(`🔄 Getting recommendations for ${user.first_name} (${user.id}) - Force refresh: ${forceRefresh}`);
+  async getRecommendations(user: User, forceRefresh: boolean = false, sessionId?: string): Promise<string[]> {
+    console.log(`🔄 Getting recommendations for ${user.first_name} (${user.id}) - Session: ${sessionId || 'none'} - Force refresh: ${forceRefresh}`);
     
     try {
       // Send complete user data as POST request for better personalization
@@ -24,6 +24,7 @@ class RecommendationsService {
         },
         body: JSON.stringify({
           user_id: user.id,
+          session_id: sessionId,
           user_data: {
             age: user.age,
             gender: user.gender,

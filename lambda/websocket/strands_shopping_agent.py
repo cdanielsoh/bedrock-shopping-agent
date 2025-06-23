@@ -368,7 +368,7 @@ class StrandsShoppingAgent:
     def _add_cache_control_to_agent_messages(self, messages: List[Dict]) -> List[Dict]:
         """
         Add cache control to agent messages for prompt caching optimization.
-        Cache older messages and leave recent ones uncached for efficiency.
+        Removes existing cache points and adds them only to the last 2 user messages.
         """
         if not messages:
             return messages
@@ -377,21 +377,29 @@ class StrandsShoppingAgent:
         import copy
         cached_messages = copy.deepcopy(messages)
         
-        # Strategy: Cache all but the last 2 messages (recent conversation)
-        # This balances cache efficiency with conversation freshness
-        cache_cutoff = max(0, len(cached_messages) - 2)
+        # First pass: Remove all existing cache points from all messages
+        for message in cached_messages:
+            if isinstance(message.get('content'), list):
+                # Remove any existing cache point blocks
+                message['content'] = [
+                    block for block in message['content'] 
+                    if not (isinstance(block, dict) and 'cachePoint' in block)
+                ]
+        
+        # Second pass: Add cache points only to the last 2 user messages
+        user_message_indices = []
+        for i, message in enumerate(cached_messages):
+            if message.get('role') == 'user':
+                user_message_indices.append(i)
+        
+        # Get the last 2 user message indices
+        cache_indices = user_message_indices[-2:] if len(user_message_indices) >= 2 else user_message_indices
         
         for i, message in enumerate(cached_messages):
-            # Add cache control to the last message to be cached
-            if i == cache_cutoff - 1 and cache_cutoff > 0:
-                # Mark the last message to be cached as a cache breakpoint
+            # Add cache control to the last 2 user messages only
+            if i in cache_indices:
                 if isinstance(message.get('content'), list):
-                    # Find the last content block and add cache control
-                    for content_block in reversed(message['content']):
-                        if isinstance(content_block, dict) and 'text' in content_block:
-                            # Add cachePoint as a separate content block after the text
-                            break
-                    # Add the cachePoint as a separate content block
+                    # Add cachePoint to existing content list
                     message['content'].append({'cachePoint': {'type': 'default'}})
                 elif isinstance(message.get('content'), str):
                     # Convert string content to list format with cache control
@@ -404,8 +412,9 @@ class StrandsShoppingAgent:
                     # Add content with cache control
                     message['content'] = [{'cachePoint': {'type': 'default'}}]
         
-        logger.info(f"Added cache control to agent messages: {len(cached_messages)} total, "
-                   f"cache cutoff at message {cache_cutoff}")
+        cache_point_count = sum(1 for i in cache_indices)
+        logger.info(f"Cleaned and added cache control to agent messages: {len(cached_messages)} total, "
+                   f"{cache_point_count} cache points on last {cache_point_count} user messages at indices: {cache_indices}")
         return cached_messages
 
 

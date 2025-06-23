@@ -307,121 +307,117 @@ export const AgentConversationMonitor: React.FC = () => {
     <div className="agent-conversation-monitor">
       {/* Header - matching conversation monitor style */}
       <div className="monitor-header">
-        <h2>🤖 Agent Conversation Monitor</h2>
+        <h1>🤖 Agent Conversation Monitor</h1>
         <p>Monitor agent conversations, tool usage, and agent-specific metrics</p>
       </div>
 
       {/* Controls Section - matching conversation monitor style */}
       <div className="monitor-controls">
-        <div className="control-row">
-          <div className="control-group">
-            <label>User:</label>
-            <select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="control-select"
-            >
-              {userOptions.map(user => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="control-group">
-            <label>Session:</label>
-            <select
-              value={selectedSessionId}
-              onChange={(e) => setSelectedSessionId(e.target.value)}
-              disabled={!selectedUserId || sessionsLoading}
-              className="control-select"
-            >
-              <option value="">
-                {!selectedUserId ? 'Select a user first...' : 
-                 sessionsLoading ? 'Loading sessions...' : 
-                 userSessions.length === 0 ? 'No sessions found' : 
-                 'Select a session...'}
-              </option>
-              {userSessions.map(session => (
-                <option key={session.session_id} value={session.session_id}>
-                  {formatSessionDisplay(session)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button 
-            onClick={async () => {
-              console.log('🔄 Agent Monitor Refresh button clicked');
-              console.log('🔄 Current state:', { selectedUserId, selectedSessionId, loading, sessionsLoading });
-              
-              try {
-                if (selectedUserId) {
-                  console.log('🔄 Refreshing user sessions for:', selectedUserId);
-                  await fetchUserSessions(selectedUserId);
-                  console.log('✅ User sessions refreshed');
-                }
-                if (selectedSessionId) {
-                  console.log('🔄 Refreshing agent conversation data for:', selectedSessionId);
-                  await fetchAgentConversationData();
-                  console.log('✅ Agent conversation data refreshed');
-                }
-                console.log('✅ Agent Monitor refresh completed');
-              } catch (error) {
-                console.error('❌ Agent Monitor refresh failed:', error);
-                setError(error instanceof Error ? error.message : 'Refresh failed');
-              }
-            }}
-            disabled={!selectedUserId || loading || sessionsLoading}
-            className="refresh-button"
-            title={`Refresh ${selectedUserId ? 'sessions and data' : 'data (select user first)'}`}
+        <div className="control-group">
+          <label>User:</label>
+          <select
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
           >
-            {loading || sessionsLoading ? '🔄 Loading...' : '🔄 Refresh'}
-          </button>
+            {userOptions.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.name}
+              </option>
+            ))}
+          </select>
         </div>
+
+        <div className="control-group">
+          <label>Session:</label>
+          <select
+            value={selectedSessionId}
+            onChange={(e) => setSelectedSessionId(e.target.value)}
+            disabled={!selectedUserId || sessionsLoading}
+          >
+            <option value="">
+              {!selectedUserId ? 'Select a user first...' : 
+               sessionsLoading ? 'Loading sessions...' : 
+               userSessions.length === 0 ? 'No sessions found' : 
+               'Select a session...'}
+            </option>
+            {userSessions.map(session => (
+              <option key={session.session_id} value={session.session_id}>
+                {formatSessionDisplay(session)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button 
+          onClick={async () => {
+            console.log('🔄 Agent Monitor Refresh button clicked');
+            console.log('🔄 Current state:', { selectedUserId, selectedSessionId, loading, sessionsLoading });
+            
+            try {
+              if (selectedUserId) {
+                console.log('🔄 Refreshing user sessions for:', selectedUserId);
+                await fetchUserSessions(selectedUserId);
+                console.log('✅ User sessions refreshed');
+              }
+              if (selectedSessionId) {
+                console.log('🔄 Refreshing agent conversation data for:', selectedSessionId);
+                await fetchAgentConversationData();
+                console.log('✅ Agent conversation data refreshed');
+              }
+              console.log('✅ Agent Monitor refresh completed');
+            } catch (error) {
+              console.error('❌ Agent Monitor refresh failed:', error);
+              setError(error instanceof Error ? error.message : 'Refresh failed');
+            }
+          }}
+          disabled={!selectedUserId || loading || sessionsLoading}
+          title={`Refresh ${selectedUserId ? 'sessions and data' : 'data (select user first)'}`}
+        >
+          {loading || sessionsLoading ? '🔄 Loading...' : '🔄 Refresh'}
+        </button>
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="error-section">
-          <div className="error-message">
-            <span className="error-icon">⚠️</span>
-            <span>Error: {error}</span>
-          </div>
+        <div className="error-message">
+          Error: {error}
         </div>
       )}
 
       {/* Content Area */}
       <div className="monitor-content">
         {!selectedSessionId && (
-          <div className="empty-state">
-            <div className="empty-icon">🤖</div>
-            <h3>Select a user and session to view agent conversations</h3>
-            <p>Choose a user from the dropdown above, then select one of their sessions to monitor agent interactions, tool usage, and conversation flow.</p>
+          <div className="monitor-section">
+            <h2>Select Session</h2>
+            <div className="no-data">
+              Choose a user from the dropdown above, then select one of their sessions to monitor agent interactions, tool usage, and conversation flow.
+            </div>
           </div>
         )}
 
         {selectedSessionId && loading && (
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p>Loading agent conversation data...</p>
+          <div className="monitor-section">
+            <h2>Loading...</h2>
+            <div className="no-data">
+              Loading agent conversation data...
+            </div>
           </div>
         )}
 
         {selectedSessionId && !loading && !agentData && !error && (
-          <div className="no-data-state">
-            <div className="no-data-icon">📭</div>
-            <h3>No agent conversation data found</h3>
-            <p>This session may not have used agent mode, or the data may not be available yet.</p>
+          <div className="monitor-section">
+            <h2>No Data Found</h2>
+            <div className="no-data">
+              This session may not have used agent mode, or the data may not be available yet.
+            </div>
           </div>
         )}
 
         {agentData && (
-          <div className="agent-data-container">
+          <>
             {/* Agent Metadata Summary - matching conversation monitor cards */}
-            <div className="summary-section">
-              <h3>📊 Agent Session Summary</h3>
+            <div className="monitor-section">
+              <h2>📊 Agent Session Summary</h2>
               <div className="summary-cards">
                 <div className="summary-card">
                   <div className="card-header">
@@ -479,8 +475,8 @@ export const AgentConversationMonitor: React.FC = () => {
 
             {/* EventLoopMetrics Section */}
             {agentData.has_metrics && agentData.event_loop_metrics && (
-              <div className="metrics-section">
-                <h3>📈 EventLoop Performance Metrics</h3>
+              <div className="monitor-section">
+                <h2>📈 EventLoop Performance Metrics</h2>
                 
                 {agentData.event_loop_metrics.has_metrics ? (
                   <>
@@ -603,12 +599,12 @@ export const AgentConversationMonitor: React.FC = () => {
             )}
 
             {/* Agent Messages - matching conversation monitor style */}
-            <div className="messages-section">
-              <h3>💬 Agent Messages ({agentData.agent_messages.length})</h3>
+            <div className="monitor-section">
+              <h2>💬 Agent Messages ({agentData.agent_messages.length})</h2>
               
               {agentData.agent_messages.length === 0 ? (
-                <div className="no-messages">
-                  <p>No agent messages found for this session.</p>
+                <div className="no-data">
+                  No agent messages found for this session.
                 </div>
               ) : (
                 <div className="messages-list">
@@ -681,13 +677,7 @@ export const AgentConversationMonitor: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="monitor-footer">
-              <div className="footer-info">
-                <span>Last updated: {formatTimestamp(agentData.retrieved_at)}</span>
-                <span>Manual refresh only</span>
-              </div>
-            </div>
-          </div>
+          </>
         )}
       </div>
     </div>

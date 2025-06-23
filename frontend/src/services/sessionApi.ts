@@ -9,6 +9,7 @@ export interface SessionInfo {
   createdAt: string;
   lastUsed: string;
   messageCount: number;
+  isAgentMode?: boolean;
 }
 
 export class SessionApiService {
@@ -54,9 +55,9 @@ export class SessionApiService {
   /**
    * Create a new session
    */
-  async createSession(sessionId: string, userId: string, title?: string): Promise<boolean> {
+  async createSession(sessionId: string, userId: string, title?: string, isAgentMode?: boolean): Promise<boolean> {
     const sessionTitle = title || `Session ${new Date().toLocaleString()}`;
-    console.log(`🌐 SessionApiService.createSession called:`, { sessionId, userId, title: sessionTitle });
+    console.log(`🌐 SessionApiService.createSession called:`, { sessionId, userId, title: sessionTitle, isAgentMode });
     console.log(`📡 API URL: ${this.baseUrl}/sessions`);
     
     try {
@@ -64,6 +65,7 @@ export class SessionApiService {
         sessionId,
         userId,
         title: sessionTitle,
+        isAgentMode: isAgentMode || false,
       };
       console.log(`📤 Request body:`, requestBody);
       
@@ -94,7 +96,7 @@ export class SessionApiService {
   /**
    * Update a session
    */
-  async updateSession(sessionId: string, updates: Partial<Pick<SessionInfo, 'title' | 'messageCount'>>): Promise<boolean> {
+  async updateSession(sessionId: string, updates: Partial<Pick<SessionInfo, 'title' | 'messageCount' | 'isAgentMode'>>): Promise<boolean> {
     try {
       const response = await fetch(`${this.baseUrl}/sessions/${sessionId}`, {
         method: 'PUT',

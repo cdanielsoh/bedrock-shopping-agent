@@ -12,7 +12,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -31,7 +31,7 @@ body {
 
 main {
   flex: 1;
-  background: #f8fafc;
+  background: transparent;
   overflow: auto;
 }
 

@@ -188,8 +188,8 @@ class PerformanceMonitor:
             'ttl': int(datetime.now(timezone.utc).timestamp()) + (30 * 24 * 60 * 60)  # 30 days
         }
         
-        # Save to DynamoDB
-        if self.performance_table:
+        # Save to DynamoDB only if we have meaningful token usage (normal response)
+        if self.performance_table and (self.input_tokens > 0 or self.output_tokens > 0):
             try:
                 self.performance_table.put_item(Item=metrics)
                 logger.info(f"Saved performance metrics - First token: {first_token_latency:.2f}ms, "
@@ -197,6 +197,9 @@ class PerformanceMonitor:
                            f"Cost: ${total_cost:.6f}")
             except Exception as e:
                 logger.error(f"Failed to save performance metrics: {str(e)}")
+        elif self.performance_table:
+            logger.info(f"Skipping performance save - no tokens used (likely routing-only): "
+                       f"Tokens: {self.input_tokens}→{self.output_tokens}")
         else:
             logger.warning("Performance metrics table not configured")
         
