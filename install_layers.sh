@@ -111,6 +111,10 @@ create_layer "opensearchpy" "opensearch-py==2.4.2 requests-aws4auth==1.2.3 urlli
 print_status "Setting up Boto3 layer..."
 create_layer "boto3" "boto3>=1.34.0 botocore>=1.34.0"
 
+# Create Strands layer
+print_status "Setting up Strands layer..."
+create_layer "strands" "strands-agents strands-agents-tools"
+
 # Create a requirements file for reference
 print_status "Creating requirements reference..."
 cat > layers/requirements.txt << EOF
@@ -125,6 +129,10 @@ urllib3==1.26.18
 # Boto3 Layer (with Bedrock support)
 boto3>=1.34.0
 botocore>=1.34.0
+
+# Strands Layer
+strands-agents==0.1.0
+strands-agents-tools==0.1.0
 EOF
 
 # Create a README for the layers directory
@@ -222,7 +230,7 @@ print_success "🎉 Lambda layers installation completed!"
 echo ""
 echo "📝 Next Steps:"
 echo "  1. Layers are ready for CDK deployment"
-echo "  2. Run: cdk deploy WebFrontendStack"
+echo "  2. Run: cdk deploy --all"
 echo "  3. The layers/ directory is excluded from git"
 echo ""
 print_warning "Remember: Never commit the layers/ directory to version control"
