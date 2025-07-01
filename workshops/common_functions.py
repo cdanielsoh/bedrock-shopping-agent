@@ -4,10 +4,11 @@ from strands import Agent, tool
 
 def converse_bedrock(
         system_prompt: str,
-        user_prompt: str, 
+        message: str | list[dict], 
         model_id: str = "us.anthropic.claude-3-7-sonnet-20250219-v1:0", 
         cache_system: bool = False, 
-        cache_messages: bool = False
+        cache_messages: bool = False,
+        inference_config: dict = None
     ):
     bedrock_client = boto3.client(
         service_name='bedrock-runtime',
@@ -19,7 +20,7 @@ def converse_bedrock(
             "text": system_prompt
         }
     ]
-    
+
     if cache_system:
         system.append({
             "cachePoint": {
@@ -27,25 +28,56 @@ def converse_bedrock(
             }
         })
 
-    messages = [
-        {
-            "role": "user",
-            "content": [{"text": user_prompt}]
-        }
-    ]
-
-    if cache_messages:
-        messages[-1]["content"].append({
-            "cachePoint": {
-                "type": "default"
+    if isinstance(message, str):
+        messages = [
+            {
+                "role": "user",
+                "content": [{"text": message}]
             }
-        })
+        ]
 
-    response = bedrock_client.converse(
-        modelId=model_id,
-        system=system,
-        messages=messages,
-    )
+        if cache_messages:
+            messages[-1]["content"].append({
+                "cachePoint": {
+                    "type": "default"
+                }
+            })
+
+    else:
+        messages = message
+
+        for message in messages:
+            if {"cachePoint": {"type": "default"}} in message["content"]:
+                message["content"].remove({"cachePoint": {"type": "default"}})
+
+        if cache_messages:
+            messages[-1]["content"].append({
+                "cachePoint": {
+                    "type": "default"
+                }
+            })
+
+            messages[-3]["content"].append({
+                "cachePoint": {
+                    "type": "default"
+                }
+            })
+
+    if inference_config:
+        response = bedrock_client.converse(
+            modelId=model_id,
+            system=system,
+            messages=messages,
+            inferenceConfig=inference_config
+        )
+
+    else:
+        response = bedrock_client.converse(
+            modelId=model_id,
+            system=system,
+            messages=messages
+        )
+
 
     return response.get('output'), response.get('usage'), response.get('metrics')
 
