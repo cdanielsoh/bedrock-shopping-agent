@@ -123,8 +123,9 @@ class PerformanceMonitor:
         # Handle cache tokens if available
         if 'cacheReadInputTokens' in usage:
             self.cache_read_tokens += usage.get('cacheReadInputTokens', 0)
-        if 'cacheCreationInputTokens' in usage:
-            self.cache_write_tokens += usage.get('cacheCreationInputTokens', 0)
+        # Check for both possible cache write field names
+        elif 'cacheWriteInputTokens' in usage:
+            self.cache_write_tokens += usage.get('cacheWriteInputTokens', 0)
         
         logger.debug(f"Updated token usage - Input: {self.input_tokens}, Output: {self.output_tokens}")
     

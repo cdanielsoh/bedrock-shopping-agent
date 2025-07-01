@@ -31,7 +31,7 @@ interface SharedContext {
     timestamp?: string;
   }>;
   user_preferences: Record<string, any>;
-  search_history: string[];
+  search_history: Array<string | { searched_at?: string; query?: string; [key: string]: any }>;
   last_updated: string;
 }
 
@@ -348,7 +348,9 @@ const ConversationMonitor: React.FC = () => {
                     <h4>🔍 Search History</h4>
                     <div className="search-history">
                       {(sharedContext.search_history || []).map((term, index) => (
-                        <span key={index} className="search-term">{term}</span>
+                        <span key={index} className="search-term">
+                          {typeof term === 'string' ? term : (term as any)?.query || JSON.stringify(term)}
+                        </span>
                       ))}
                     </div>
                   </div>
