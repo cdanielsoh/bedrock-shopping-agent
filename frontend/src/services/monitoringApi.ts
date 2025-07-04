@@ -2,6 +2,8 @@
  * API service for monitoring data
  */
 
+import { HTTP_API_URL } from '../config/api';
+
 export interface ConversationData {
   conversation_id: string;
   handler_type: string;
@@ -233,6 +235,6 @@ export class MonitoringApiService {
 
 // Factory function to create monitoring API service
 export function createMonitoringApi(baseUrl?: string): MonitoringApiService {
-  const apiUrl = baseUrl || 'https://mselacy07a.execute-api.us-west-2.amazonaws.com';
+  const apiUrl = baseUrl || HTTP_API_URL;
   return new MonitoringApiService(apiUrl);
 }

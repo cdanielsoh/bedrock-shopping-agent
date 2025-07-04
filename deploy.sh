@@ -49,9 +49,15 @@ echo "HTTP API URL: $HTTP_API_URL"
 echo "S3 Bucket: $BUCKET_NAME"
 
 # Update the frontend configuration with the correct API endpoints
-echo "Updating frontend configuration..."
-sed -i "s|const ws = new WebSocketService('.*');|const ws = new WebSocketService('$WEBSOCKET_URL');|g" src/components/ChatBox.tsx
-sed -i "s|const httpApiUrl = '.*';|const httpApiUrl = '$HTTP_API_URL';|g" src/components/ChatBox.tsx
+echo "Updating centralized API configuration..."
+
+# Update the centralized config file with actual deployed endpoints
+sed -i "s|WEBSOCKET_URL: '.*'|WEBSOCKET_URL: '$WEBSOCKET_URL'|g" src/config/api.ts
+sed -i "s|HTTP_API_URL: '.*'|HTTP_API_URL: '$HTTP_API_URL'|g" src/config/api.ts
+
+echo "Frontend configuration updated with:"
+echo "  WebSocket URL: $WEBSOCKET_URL"
+echo "  HTTP API URL: $HTTP_API_URL"
 
 # Build the frontend
 echo "Building frontend..."

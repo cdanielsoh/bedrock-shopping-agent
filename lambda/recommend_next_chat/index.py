@@ -170,7 +170,7 @@ Each suggestion should be:
 - Maximum 8-10 words
 - Natural and conversational
 - Relevant to their shopping journey and persona
-- Action-oriented and engaging{variation_instruction}
+- Action-oriented and engaging
 - Must be something that the user might say to the assistant and not the other way around
 - Response should be in Korean
 

@@ -39,35 +39,12 @@ An AI-powered shopping assistant built with AWS services, featuring real-time ch
 ### Prerequisites
 - AWS CLI configured
 - Node.js 18+
-- Python 3.9+
+- Python 3.10
 - AWS CDK v2
 
 ### Setup & Deploy
 ```bash
-# Clone and setup
-git clone <repository-url>
-cd bedrock-shopping-agent
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Install Lambda layers (required dependencies - not included in repo)
-./install_layers.sh
-
-# Install frontend dependencies
-cd frontend
-npm install
-cd ..
-
-# Deploy stacks
-cdk deploy OpenSearchServerlessStack --require-approval never
-cdk deploy DynamoDbStack --require-approval never
-cdk deploy WebFrontendStack --require-approval never
-
-# Build and deploy frontend
-cd frontend
-npm run build
-aws s3 sync dist/ s3://$(aws cloudformation describe-stacks --stack-name WebFrontendStack --query 'Stacks[0].Outputs[?OutputKey==`WebsiteURL`].OutputValue' --output text | sed 's|https://||' | sed 's|\.cloudfront\.net||').s3.amazonaws.com
+./deploy.sh
 ```
 
 ## 📁 Project Structure

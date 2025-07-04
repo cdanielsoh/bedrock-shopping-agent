@@ -1,4 +1,5 @@
 import type { User } from '../data/users';
+import { HTTP_API_URL } from '../config/api';
 
 export interface ChatRecommendation {
   recommendations: string[];
@@ -9,7 +10,7 @@ class RecommendationsService {
 
   constructor() {
     // HTTP API URL from CDK deployment
-    this.apiUrl = 'https://mselacy07a.execute-api.us-west-2.amazonaws.com';
+    this.apiUrl = HTTP_API_URL;
   }
 
   async getRecommendations(user: User, forceRefresh: boolean = false, sessionId?: string): Promise<string[]> {

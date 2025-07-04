@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { users, getUserDisplayName } from '../data/users';
+import { HTTP_API_URL } from '../config/api';
 import './AgentConversationMonitor.css';
 
 interface AgentMessage {
@@ -133,7 +134,7 @@ export const AgentConversationMonitor: React.FC = () => {
       console.log(`🌐 Fetching sessions for user: ${userId}`);
       // Use the monitoring sessions endpoint (same as conversation monitor)
       const response = await fetch(
-        `https://mselacy07a.execute-api.us-west-2.amazonaws.com/monitoring/sessions/${userId}`
+        `${HTTP_API_URL}/monitoring/sessions/${userId}`
       );
       
       console.log(`📡 Response status: ${response.status}`);
@@ -189,7 +190,7 @@ export const AgentConversationMonitor: React.FC = () => {
       console.log('🤖 Fetching agent data for session:', cleanSessionId);
       
       const response = await fetch(
-        `https://mselacy07a.execute-api.us-west-2.amazonaws.com/monitoring/agent-conversations/${encodeURIComponent(cleanSessionId)}`
+        `${HTTP_API_URL}/monitoring/agent-conversations/${encodeURIComponent(cleanSessionId)}`
       );
       
       console.log('📡 Agent API Response status:', response.status);

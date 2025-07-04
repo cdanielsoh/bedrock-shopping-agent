@@ -6,6 +6,7 @@ import RecommendationBubbles from './RecommendationBubbles';
 import SessionManagerComponent from './SessionManager';
 import { getUserById } from '../data/users';
 import { SessionManager } from '../services/sessionManager';
+import { WEBSOCKET_URL, HTTP_API_URL } from '../config/api';
 import type { WebSocketMessage, Product, OrderContent } from '../types';
 import './ChatBox.css';
 
@@ -58,8 +59,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
     console.log(`🔧 ChatBox useEffect: Initializing with selectedUserId: ${selectedUserId}`);
     
     // Initialize session API with HTTP API URL from CDK output
-    const httpApiUrl = 'https://mselacy07a.execute-api.us-west-2.amazonaws.com';
-    SessionManager.initializeWithApi(httpApiUrl);
+    SessionManager.initializeWithApi(HTTP_API_URL);
     
     // Initialize session with user ID (now async)
     const initializeSession = async () => {
@@ -96,7 +96,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
     initializeSession();
     
     // Replace with your WebSocket URL
-    const ws = new WebSocketService('wss://rihakjloyf.execute-api.us-west-2.amazonaws.com/prod');
+    const ws = new WebSocketService(WEBSOCKET_URL);
     setWsService(ws);
 
     const removeHandler = ws.onMessage((message: WebSocketMessage) => {
