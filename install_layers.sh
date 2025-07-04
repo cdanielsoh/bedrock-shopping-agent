@@ -107,6 +107,10 @@ create_layer() {
 print_status "Setting up OpenSearch layer..."
 create_layer "opensearchpy" "opensearch-py==2.4.2 requests-aws4auth==1.2.3 urllib3==1.26.18"
 
+# Create Requests layer
+print_status "Setting up Requests layer..."
+create_layer "requests" "requests-aws4auth==1.2.3"
+
 # Create Boto3 layer with latest version that supports Bedrock
 print_status "Setting up Boto3 layer..."
 create_layer "boto3" "boto3>=1.34.0 botocore>=1.34.0"
