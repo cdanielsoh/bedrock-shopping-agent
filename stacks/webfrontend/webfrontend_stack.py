@@ -691,6 +691,13 @@ class WebFrontendStack(cdk.Stack):
             description='URL of the product images CDN',
         )
 
+        # Output the S3 bucket name for frontend deployment
+        cdk.CfnOutput(
+            self, 'WebsiteBucketName',
+            value=website_bucket.bucket_name,
+            description='Name of the S3 bucket hosting the website',
+        )
+
         # Store references for potential future use
         self.chat_recommendations_table = chat_recommendations_table
         self.http_api = http_api
