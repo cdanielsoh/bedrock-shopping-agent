@@ -109,7 +109,7 @@ create_layer "opensearchpy" "opensearch-py==2.4.2 requests-aws4auth==1.2.3 urlli
 
 # Create Requests layer
 print_status "Setting up Requests layer..."
-create_layer "requests" "requests-aws4auth==1.2.3"
+create_layer "requests" "requests requests-aws4auth idna urllib3 certifi"
 
 # Create Boto3 layer with latest version that supports Bedrock
 print_status "Setting up Boto3 layer..."
