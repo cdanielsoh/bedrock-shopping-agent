@@ -27,16 +27,35 @@ cdk deploy WebFrontendStack --require-approval never
 # Build and deploy frontend
 echo "Building and deploying frontend..."
 cd frontend
-npm run build
 
-# Get the S3 bucket name from CloudFormation output
+# Get API endpoints from CloudFormation outputs
+echo "Retrieving API endpoints from CloudFormation..."
+WEBSOCKET_URL=$(aws cloudformation describe-stacks --stack-name WebFrontendStack --query 'Stacks[0].Outputs[?OutputKey==`WebSocketURL`].OutputValue' --output text)
+HTTP_API_URL=$(aws cloudformation describe-stacks --stack-name WebFrontendStack --query 'Stacks[0].Outputs[?OutputKey==`HttpApiUrl`].OutputValue' --output text)
 BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name WebFrontendStack --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' --output text)
 
-# Check if bucket name was retrieved successfully
-if [ -z "$BUCKET_NAME" ]; then
-    echo "Error: Could not retrieve S3 bucket name from CloudFormation stack"
+# Check if all required values were retrieved
+if [ -z "$WEBSOCKET_URL" ] || [ -z "$HTTP_API_URL" ] || [ -z "$BUCKET_NAME" ]; then
+    echo "Error: Could not retrieve required values from CloudFormation stack"
+    echo "WebSocket URL: $WEBSOCKET_URL"
+    echo "HTTP API URL: $HTTP_API_URL"
+    echo "Bucket Name: $BUCKET_NAME"
     exit 1
 fi
+
+echo "Retrieved endpoints:"
+echo "WebSocket URL: $WEBSOCKET_URL"
+echo "HTTP API URL: $HTTP_API_URL"
+echo "S3 Bucket: $BUCKET_NAME"
+
+# Update the frontend configuration with the correct API endpoints
+echo "Updating frontend configuration..."
+sed -i "s|const ws = new WebSocketService('.*');|const ws = new WebSocketService('$WEBSOCKET_URL');|g" src/components/ChatBox.tsx
+sed -i "s|const httpApiUrl = '.*';|const httpApiUrl = '$HTTP_API_URL';|g" src/components/ChatBox.tsx
+
+# Build the frontend
+echo "Building frontend..."
+npm run build
 
 # Deploy frontend to S3
 echo "Deploying frontend to S3 bucket: $BUCKET_NAME"
