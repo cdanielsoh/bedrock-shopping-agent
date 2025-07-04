@@ -105,7 +105,7 @@ create_layer() {
 
 # Create OpenSearch layer
 print_status "Setting up OpenSearch layer..."
-create_layer "opensearchpy" "opensearch-py==2.4.2 requests-aws4auth==1.2.3 urllib3==1.26.18"
+create_layer "opensearchpy" "opensearch-py==2.4.2 requests requests-aws4auth idna urllib3 certifi"
 
 # Create Requests layer
 print_status "Setting up Requests layer..."
