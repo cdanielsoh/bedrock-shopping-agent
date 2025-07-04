@@ -131,12 +131,12 @@ class OpenSearchServerlessStack(Stack):
         # Add dependency to ensure collection exists before access policy
         data_access_policy.add_dependency(collection)
 
-        # Requests layer
-        requests_layer = lambda_.LayerVersion(
-            self, "RequestsLayer",
-            code=lambda_.Code.from_asset("./layers/requests"),
+        # opensearchpy layer
+        opensearchpy_layer = lambda_.LayerVersion(
+            self, "OpensearchpyLayer",
+            code=lambda_.Code.from_asset("./layers/opensearchpy"),
             compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
-            description="Layer containing the requests module"
+            description="Layer containing the opensearchpy module"
         )
 
         # Grant S3 access
@@ -155,7 +155,7 @@ class OpenSearchServerlessStack(Stack):
                 "REGION": self.region
             },
             timeout=Duration.minutes(5),
-            layers=[requests_layer],
+            layers=[opensearchpy_layer],
             role=lambda_role
         )
 
