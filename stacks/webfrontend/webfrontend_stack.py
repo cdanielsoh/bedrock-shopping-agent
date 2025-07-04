@@ -209,7 +209,7 @@ class WebFrontendStack(cdk.Stack):
         # Create Lambda functions for WebSocket routes
         connect_function = lambda_.Function(
             self, 'ConnectFunction',
-            runtime=lambda_.Runtime.PYTHON_3_12,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             handler='connect.handler',
             code=lambda_.Code.from_asset('lambda/websocket'),
             environment={
@@ -219,7 +219,7 @@ class WebFrontendStack(cdk.Stack):
 
         disconnect_function = lambda_.Function(
             self, 'DisconnectFunction',
-            runtime=lambda_.Runtime.PYTHON_3_12,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             handler='disconnect.handler',
             code=lambda_.Code.from_asset('lambda/websocket'),
             environment={
@@ -231,7 +231,7 @@ class WebFrontendStack(cdk.Stack):
         opensearch_layer = lambda_.LayerVersion(
             self, 'OpenSearchLayer',
             code=lambda_.Code.from_asset('layers/opensearchpy'),
-            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_10],
             description='Layer containing the OpenSearch SDK'
         )
         
@@ -239,7 +239,7 @@ class WebFrontendStack(cdk.Stack):
         boto3_layer = lambda_.LayerVersion(
             self, 'Boto3Layer',
             code=lambda_.Code.from_asset('layers/boto3'),
-            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_10],
             description='Layer containing the latest boto3 SDK with prompt caching support'
         )
 
@@ -247,14 +247,14 @@ class WebFrontendStack(cdk.Stack):
         strands_layer = lambda_.LayerVersion(
             self, 'StrandsLayer',
             code=lambda_.Code.from_asset('layers/strands'),
-            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_10],
             description='Layer containing the strands SDK'
         )
 
         # Create Bedrock Lambda function with both KnowledgeBase and OpenSearch access
         message_function = lambda_.Function(
             self, 'MessageLambdaFunction',
-            runtime=lambda_.Runtime.PYTHON_3_12,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             handler='message_refactored.handler',
             code=lambda_.Code.from_asset('lambda/websocket'),
             layers=[opensearch_layer, boto3_layer, strands_layer],
@@ -280,7 +280,7 @@ class WebFrontendStack(cdk.Stack):
         # Create Lambda function for session management
         session_management_function = lambda_.Function(
             self, 'SessionManagementFunction',
-            runtime=lambda_.Runtime.PYTHON_3_12,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             handler='session_manager.lambda_handler',
             code=lambda_.Code.from_asset('lambda/sessions'),
             environment={
@@ -297,7 +297,7 @@ class WebFrontendStack(cdk.Stack):
         # Create Lambda function for chat recommendations
         recommend_chat_function = lambda_.Function(
             self, 'RecommendChatFunction',
-            runtime=lambda_.Runtime.PYTHON_3_12,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             handler='index.handler',
             code=lambda_.Code.from_asset('lambda/recommend_next_chat'),
             layers=[boto3_layer],
@@ -596,7 +596,7 @@ class WebFrontendStack(cdk.Stack):
         # Create monitoring API Lambda function
         monitoring_function = lambda_.Function(
             self, 'MonitoringApiFunction',
-            runtime=lambda_.Runtime.PYTHON_3_12,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             handler='monitoring_api.lambda_handler',
             code=lambda_.Code.from_asset('lambda/monitoring'),
             timeout=cdk.Duration.seconds(30),

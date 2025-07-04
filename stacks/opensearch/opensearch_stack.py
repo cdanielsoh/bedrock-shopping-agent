@@ -135,7 +135,7 @@ class OpenSearchServerlessStack(Stack):
         requests_layer = lambda_.LayerVersion(
             self, "RequestsLayer",
             code=lambda_.Code.from_asset("./layers/requests"),
-            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_10],
             description="Layer containing the requests module"
         )
 
@@ -145,7 +145,7 @@ class OpenSearchServerlessStack(Stack):
         # Create Lambda function to create index and ingest data
         ingest_lambda = lambda_.Function(
             self, "IngestDataFunction",
-            runtime=lambda_.Runtime.PYTHON_3_12,
+            runtime=lambda_.Runtime.PYTHON_3_10,
             handler="index.handler",
             code=lambda_.Code.from_asset("./lambda/ingest_opensearch"),
             environment={
