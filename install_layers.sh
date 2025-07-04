@@ -1,240 +1,49 @@
 #!/bin/bash
 
-# install_layers.sh
-# Script to install Lambda layer dependencies for the Bedrock Shopping Agent
-# This script creates the layers/ directory with required Python packages
+# Simple virtual environment approach for Lambda layers
+set -e
 
-set -e  # Exit on any error
+PYTHON_CMD="python3"
 
-echo "🚀 Installing Lambda Layer Dependencies"
-echo "======================================"
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Function to print colored output
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Check if we're in the right directory
-if [ ! -f "app.py" ]; then
-    print_error "Please run this script from the bedrock-shopping-agent root directory"
-    exit 1
-fi
-
-# Check if we're in a virtual environment and use it
-if [ -n "$VIRTUAL_ENV" ]; then
-    print_status "Virtual environment detected: $VIRTUAL_ENV"
-    PYTHON_CMD="python"
-    PIP_CMD="pip"
-# Check if Python 3.9 is available and has pip
-elif command -v python3.9 &> /dev/null && python3.9 -m pip --version &> /dev/null; then
-    PYTHON_CMD="python3.9"
-elif command -v python3 &> /dev/null && python3 -m pip --version &> /dev/null; then
-    PYTHON_CMD="python3"
-    print_warning "Using python3 instead of python3.9"
-elif command -v pip3 &> /dev/null; then
-    PYTHON_CMD="python3"
-    PIP_CMD="pip3"
-    print_warning "Using pip3 directly"
-else
-    print_error "Python 3 with pip is required but not found"
-    print_error "Please install Python 3 and pip, or activate your virtual environment"
-    exit 1
-fi
-
-# Set pip command if not already set
-if [ -z "$PIP_CMD" ]; then
-    PIP_CMD="$PYTHON_CMD -m pip"
-fi
-
-# Check Python version
-PYTHON_VERSION=$($PYTHON_CMD --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
-print_status "Using Python version: $PYTHON_VERSION"
-
-# Create layers directory
-print_status "Creating layers directory structure..."
-rm -rf layers/
+# Clean start
+rm -rf layers/ temp_venv/
 mkdir -p layers
 
-# Function to create a layer
+# Function to create layer with virtual environment
 create_layer() {
     local layer_name=$1
     local packages=$2
-    local layer_dir="layers/${layer_name}"
     
-    print_status "Creating ${layer_name} layer..."
+    echo "Creating $layer_name layer..."
     
-    # Create layer directory structure
-    mkdir -p "${layer_dir}/python"
+    # Create temporary virtual environment
+    $PYTHON_CMD -m venv temp_venv
+    source temp_venv/bin/activate
     
-    # Install packages to the layer directory
-    print_status "Installing packages: ${packages}"
-    $PIP_CMD install ${packages} -t "${layer_dir}/python" --no-deps --platform manylinux2014_x86_64 --only-binary=:all: 2>/dev/null || \
-    $PIP_CMD install ${packages} -t "${layer_dir}/python" --platform manylinux2014_x86_64 --only-binary=:all: 2>/dev/null || \
-    $PIP_CMD install ${packages} -t "${layer_dir}/python"
+    # Install packages in clean environment
+    pip install --upgrade pip
+    pip install $packages
     
-    # Clean up unnecessary files
-    find "${layer_dir}/python" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-    find "${layer_dir}/python" -name "*.pyc" -delete 2>/dev/null || true
-    find "${layer_dir}/python" -name "*.pyo" -delete 2>/dev/null || true
-    find "${layer_dir}/python" -type d -name "*.dist-info" -exec rm -rf {} + 2>/dev/null || true
-    find "${layer_dir}/python" -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+    # Copy to layer directory
+    mkdir -p "layers/$layer_name/python"
+    cp -r temp_venv/lib/python*/site-packages/* "layers/$layer_name/python/"
     
-    # Get the size of the layer
-    local size=$(du -sh "${layer_dir}" | cut -f1)
-    print_success "${layer_name} layer created successfully (${size})"
+    # Cleanup venv
+    deactivate
+    rm -rf temp_venv
+    
+    # Clean unnecessary files
+    find "layers/$layer_name/python" -name "*.pyc" -delete
+    find "layers/$layer_name/python" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    
+    echo "✅ $layer_name layer created"
 }
 
-# Create OpenSearch layer
-print_status "Setting up OpenSearch layer..."
-create_layer "opensearchpy" "opensearch-py==2.4.2 requests requests-aws4auth idna urllib3 certifi"
-
-# Create Requests layer
-print_status "Setting up Requests layer..."
+# Create layers
 create_layer "requests" "requests requests-aws4auth idna urllib3 certifi"
-
-# Create Boto3 layer with latest version that supports Bedrock
-print_status "Setting up Boto3 layer..."
-create_layer "boto3" "boto3>=1.34.0 botocore>=1.34.0"
-
-# Create Strands layer
-print_status "Setting up Strands layer..."
+create_layer "opensearchpy" "opensearch-py requests requests-aws4auth"  
+create_layer "boto3" "boto3 botocore"
 create_layer "strands" "strands-agents strands-agents-tools"
 
-# Create a requirements file for reference
-print_status "Creating requirements reference..."
-cat > layers/requirements.txt << EOF
-# Lambda Layer Dependencies
-# Generated by install_layers.sh on $(date)
-
-# OpenSearch Layer
-opensearch-py==2.4.2
-requests-aws4auth==1.2.3
-urllib3==1.26.18
-
-# Boto3 Layer (with Bedrock support)
-boto3>=1.34.0
-botocore>=1.34.0
-
-# Strands Layer
-strands-agents==0.1.0
-strands-agents-tools==0.1.0
-EOF
-
-# Create a README for the layers directory
-print_status "Creating layers documentation..."
-cat > layers/README.md << EOF
-# Lambda Layers
-
-This directory contains Python dependencies for AWS Lambda functions.
-
-## ⚠️ Important Notes
-
-- **Do not commit this directory to version control**
-- **Generated by**: \`install_layers.sh\` script
-- **Regenerate**: Run \`./install_layers.sh\` to recreate layers
-
-## Layers Included
-
-### opensearchpy/
-- **Purpose**: OpenSearch client and authentication
-- **Packages**: 
-  - opensearch-py==2.4.2
-  - requests-aws4auth==1.2.3
-  - urllib3==1.26.18
-
-### boto3/
-- **Purpose**: Latest AWS SDK with Bedrock support
-- **Packages**:
-  - boto3>=1.34.0
-  - botocore>=1.34.0
-
-## Usage in CDK
-
-These layers are referenced in the WebFrontendStack:
-
-\`\`\`python
-opensearch_layer = lambda_.LayerVersion(
-    self, 'OpenSearchLayer',
-    code=lambda_.Code.from_asset('layers/opensearchpy'),
-    compatible_runtimes=[lambda_.Runtime.PYTHON_3_9]
-)
-
-boto3_layer = lambda_.LayerVersion(
-    self, 'Boto3Layer', 
-    code=lambda_.Code.from_asset('layers/boto3'),
-    compatible_runtimes=[lambda_.Runtime.PYTHON_3_9]
-)
-\`\`\`
-
-## Troubleshooting
-
-If you encounter issues:
-
-1. **Permission errors**: Ensure you have write permissions
-2. **Python version**: Use Python 3.9 for compatibility
-3. **Network issues**: Check internet connection for package downloads
-4. **Disk space**: Ensure sufficient space (layers ~50MB total)
-
-## Regeneration
-
-To regenerate layers (e.g., for updates):
-
-\`\`\`bash
-./install_layers.sh
-\`\`\`
-
-This will remove existing layers and create fresh ones.
-EOF
-
-# Verify layers were created successfully
-print_status "Verifying layer installation..."
-
-if [ -d "layers/opensearchpy/python" ] && [ -d "layers/boto3/python" ]; then
-    print_success "All layers created successfully!"
-    
-    # Show layer sizes
-    echo ""
-    echo "📊 Layer Sizes:"
-    echo "==============="
-    du -sh layers/opensearchpy | sed 's/layers\//  /'
-    du -sh layers/boto3 | sed 's/layers\//  /'
-    du -sh layers | grep -v opensearchpy | grep -v boto3 | sed 's/layers/  Total/'
-    
-    echo ""
-    echo "📁 Layer Structure:"
-    echo "=================="
-    tree layers -L 2 2>/dev/null || find layers -type d | head -10
-    
-else
-    print_error "Layer creation failed!"
-    exit 1
-fi
-
-echo ""
-print_success "🎉 Lambda layers installation completed!"
-echo ""
-echo "📝 Next Steps:"
-echo "  1. Layers are ready for CDK deployment"
-echo "  2. Run: cdk deploy --all"
-echo "  3. The layers/ directory is excluded from git"
-echo ""
-print_warning "Remember: Never commit the layers/ directory to version control"
+echo "🎉 All layers created successfully!"
+du -sh layers/*
