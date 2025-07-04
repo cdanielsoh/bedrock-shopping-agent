@@ -170,7 +170,8 @@ class WebFrontendStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             time_to_live_attribute="ttl",  # Auto-cleanup after 24 hours
             point_in_time_recovery=False,
-            stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES
+            stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
+            removal_policy=cdk.RemovalPolicy.DESTROY
         )
 
         # Add GSI for querying by user_id if needed
@@ -193,7 +194,8 @@ class WebFrontendStack(cdk.Stack):
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             time_to_live_attribute="ttl",  # Auto-cleanup after 24 hours
             point_in_time_recovery=False,
-            stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES
+            stream=dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
+            removal_policy=cdk.RemovalPolicy.DESTROY
         )
 
         agent_event_loop_metrics_table.add_global_secondary_index(
