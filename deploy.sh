@@ -1,13 +1,20 @@
 #!/bin/bash
 
+# Exit on any error
+set -e
+
 # Install AWS CDK
 npm -g install aws-cdk
 
 # Install requirements
 pip install -r requirements.txt
 
-# Install required lambda layers
-bash install_layers.sh
+# Install required lambda layers (will fail if Python 3.10 is not available)
+echo "Installing Lambda layers..."
+if ! bash install_layers.sh; then
+    echo "❌ Failed to install Lambda layers. Please check the error above."
+    exit 1
+fi
 
 # Install frontend dependencies
 echo "Installing frontend dependencies..."

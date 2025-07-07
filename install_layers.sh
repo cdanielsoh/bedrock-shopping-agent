@@ -3,7 +3,25 @@
 # Simple virtual environment approach for Lambda layers
 set -e
 
-PYTHON_CMD="python3"
+PYTHON_CMD="python3.10"
+
+# Check if Python 3.10 is installed
+echo "Checking for Python 3.10..."
+if ! command -v $PYTHON_CMD &> /dev/null; then
+    echo "❌ Error: Python 3.10 is not installed or not available in PATH"
+    echo "Please install Python 3.10 before running this script"
+    exit 1
+fi
+
+# Verify Python version
+PYTHON_VERSION=$($PYTHON_CMD --version 2>&1)
+echo "✅ Found: $PYTHON_VERSION"
+
+# Check if venv module is available
+if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+    echo "❌ Error: Python 3.10 venv module is not available"
+    exit 1
+fi
 
 # Clean start
 rm -rf layers/ temp_venv/
