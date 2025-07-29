@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "aws-cdk": "^2.1016.1"
+    "aws-cdk": "^2.1016.1",
+    "cdk-nag": "^2.36.34"
   }
 }

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ConversationMonitor from './ConversationMonitor';
 import PerformanceMonitor from './PerformanceMonitor';
 import { AgentConversationMonitor } from './AgentConversationMonitor';
+import LanguageToggle from './LanguageToggle';
 import './MonitoringDashboard.css';
 
 type MonitoringView = 'conversations' | 'performance' | 'agent-conversations';
@@ -11,12 +13,13 @@ interface MonitoringDashboardProps {
 }
 
 const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ onViewChange }) => {
+  const { t } = useTranslation();
   const [activeView, setActiveView] = useState<MonitoringView>('conversations');
 
   const views = [
     {
       id: 'conversations' as MonitoringView,
-      name: 'Conversation Monitor',
+      name: t('monitoring.conversations'),
       icon: '💬',
       description: 'View standard conversations, shared context, and routing decisions'
     },
@@ -28,7 +31,7 @@ const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ onViewChange 
     },
     {
       id: 'performance' as MonitoringView,
-      name: 'Performance Monitor',
+      name: t('monitoring.performance'),
       icon: '📊',
       description: 'Monitor token consumption, response times, and costs'
     }
@@ -38,20 +41,23 @@ const MonitoringDashboard: React.FC<MonitoringDashboardProps> = ({ onViewChange 
     <div className="monitoring-dashboard">
       <div className="dashboard-header">
         <div className="header-top">
-          <h1>🔧 Monitoring Dashboard</h1>
-          <div className="header-navigation">
-            <button
-              className="nav-btn"
-              onClick={() => onViewChange('chat')}
-            >
-              💬 Chat
+          <h1>🔧 {t('monitoring.title')}</h1>
+          <div className="header-controls">
+            <LanguageToggle />
+            <div className="header-navigation">
+              <button
+                className="nav-btn"
+                onClick={() => onViewChange('chat')}
+              >
+                💬 {t('navigation.chat')}
             </button>
             <button
               className="nav-btn active"
               onClick={() => onViewChange('monitoring')}
             >
-              🔧 Monitoring
+              🔧 {t('navigation.monitoring')}
             </button>
+            </div>
           </div>
         </div>
         <p>Comprehensive monitoring for the Bedrock Shopping Assistant</p>

@@ -47,13 +47,19 @@
   text-align: center;
 }
 
-.header-navigation {
+.header-controls {
   position: absolute;
   right: 0;
   top: 0;
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 15px;
   z-index: 20;
+}
+
+.header-navigation {
+  display: flex;
+  gap: 10px;
 }
 
 .session-section {

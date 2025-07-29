@@ -1,0 +1,101 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "clear": "Clear",
+    "send": "Send"
+  },
+  "navigation": {
+    "chat": "Chat",
+    "monitoring": "Monitoring",
+    "dashboard": "Dashboard"
+  },
+  "chat": {
+    "title": "Bedrock Shopping Assistant",
+    "subtitle": "Your AI-powered shopping companion",
+    "placeholder": "Ask me about products, recommendations, or anything shopping-related...",
+    "sendMessage": "Send message",
+    "typing": "Assistant is typing...",
+    "connectionStatus": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "connecting": "Connecting..."
+    },
+    "agent": {
+      "toggle": "Use Agent Mode",
+      "enabled": "Agent Mode: ON",
+      "disabled": "Agent Mode: OFF"
+    },
+    "suggestions": {
+      "toggle": "Show Suggestions",
+      "enabled": "Suggestions: ON",
+      "disabled": "Suggestions: OFF"
+    },
+    "session": {
+      "new": "New Session",
+      "current": "Current Session",
+      "history": "Session History"
+    },
+    "recommendations": {
+      "title": "Recommended for You",
+      "viewAll": "View All",
+      "addToCart": "Add to Cart",
+      "viewDetails": "View Details"
+    },
+    "errors": {
+      "connectionFailed": "Failed to connect to chat service",
+      "messageFailed": "Failed to send message",
+      "sessionFailed": "Failed to load session"
+    }
+  },
+  "user": {
+    "selector": {
+      "title": "Select User Profile",
+      "placeholder": "Choose a user...",
+      "current": "Current User"
+    },
+    "profile": {
+      "name": "Name",
+      "age": "Age",
+      "location": "Location",
+      "interests": "Interests",
+      "shoppingBehavior": "Shopping Behavior"
+    }
+  },
+  "products": {
+    "title": "Products",
+    "price": "Price",
+    "rating": "Rating",
+    "reviews": "Reviews",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "viewDetails": "View Details",
+    "specifications": "Specifications",
+    "description": "Description"
+  },
+  "monitoring": {
+    "title": "System Monitoring",
+    "performance": "Performance",
+    "conversations": "Conversations",
+    "metrics": "Metrics",
+    "realTime": "Real-time",
+    "historical": "Historical",
+    "refresh": "Refresh",
+    "export": "Export"
+  },
+  "language": {
+    "selector": "Language",
+    "english": "English",
+    "korean": "한국어"
+  }
+}

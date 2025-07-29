@@ -1,0 +1,101 @@
+{
+  "common": {
+    "loading": "로딩 중...",
+    "error": "오류",
+    "retry": "다시 시도",
+    "cancel": "취소",
+    "confirm": "확인",
+    "close": "닫기",
+    "save": "저장",
+    "delete": "삭제",
+    "edit": "편집",
+    "search": "검색",
+    "clear": "지우기",
+    "send": "전송"
+  },
+  "navigation": {
+    "chat": "채팅",
+    "monitoring": "모니터링",
+    "dashboard": "대시보드"
+  },
+  "chat": {
+    "title": "베드록 쇼핑 어시스턴트",
+    "subtitle": "AI 기반 쇼핑 도우미",
+    "placeholder": "제품, 추천 또는 쇼핑 관련 질문을 해보세요...",
+    "sendMessage": "메시지 전송",
+    "typing": "어시스턴트가 입력 중...",
+    "connectionStatus": {
+      "connected": "연결됨",
+      "disconnected": "연결 끊김",
+      "connecting": "연결 중..."
+    },
+    "agent": {
+      "toggle": "에이전트 모드 사용",
+      "enabled": "에이전트 모드: 켜짐",
+      "disabled": "에이전트 모드: 꺼짐"
+    },
+    "suggestions": {
+      "toggle": "제안 표시",
+      "enabled": "제안: 켜짐",
+      "disabled": "제안: 꺼짐"
+    },
+    "session": {
+      "new": "새 세션",
+      "current": "현재 세션",
+      "history": "세션 기록"
+    },
+    "recommendations": {
+      "title": "추천 상품",
+      "viewAll": "전체 보기",
+      "addToCart": "장바구니에 추가",
+      "viewDetails": "상세 보기"
+    },
+    "errors": {
+      "connectionFailed": "채팅 서비스 연결 실패",
+      "messageFailed": "메시지 전송 실패",
+      "sessionFailed": "세션 로드 실패"
+    }
+  },
+  "user": {
+    "selector": {
+      "title": "사용자 프로필 선택",
+      "placeholder": "사용자를 선택하세요...",
+      "current": "현재 사용자"
+    },
+    "profile": {
+      "name": "이름",
+      "age": "나이",
+      "location": "위치",
+      "interests": "관심사",
+      "shoppingBehavior": "쇼핑 행동"
+    }
+  },
+  "products": {
+    "title": "상품",
+    "price": "가격",
+    "rating": "평점",
+    "reviews": "리뷰",
+    "inStock": "재고 있음",
+    "outOfStock": "품절",
+    "addToCart": "장바구니에 추가",
+    "buyNow": "지금 구매",
+    "viewDetails": "상세 보기",
+    "specifications": "사양",
+    "description": "설명"
+  },
+  "monitoring": {
+    "title": "시스템 모니터링",
+    "performance": "성능",
+    "conversations": "대화",
+    "metrics": "지표",
+    "realTime": "실시간",
+    "historical": "과거 데이터",
+    "refresh": "새로고침",
+    "export": "내보내기"
+  },
+  "language": {
+    "selector": "언어",
+    "english": "English",
+    "korean": "한국어"
+  }
+}

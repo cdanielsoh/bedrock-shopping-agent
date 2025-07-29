@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { users, getUserById, getUserDisplayName } from '../data/users';
 import './UserSelector.css';
 
@@ -7,12 +8,13 @@ interface UserSelectorProps {
 }
 
 const UserSelector = ({ selectedUserId, onUserIdChange }: UserSelectorProps) => {
+  const { t } = useTranslation();
   const selectedUser = getUserById(selectedUserId);
 
   return (
     <div className="user-sidebar">
       <div className="sidebar-header">
-        <h3>👤 User</h3>
+        <h3>👤 {t('user.selector.current')}</h3>
       </div>
       
       <div className="user-dropdown-container">
@@ -55,7 +57,7 @@ const UserSelector = ({ selectedUserId, onUserIdChange }: UserSelectorProps) => 
             <div className="detail-compact">
               <span className="detail-icon">👤</span>
               <div className="detail-text">
-                <div className="detail-label">Age</div>
+                <div className="detail-label">{t('user.profile.age')}</div>
                 <div className="detail-value">{selectedUser.age} years</div>
               </div>
             </div>

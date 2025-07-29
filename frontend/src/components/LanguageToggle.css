@@ -1,0 +1,92 @@
+.language-toggle {
+  position: relative;
+  display: inline-block;
+}
+
+.language-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  min-width: 60px;
+  justify-content: center;
+}
+
+.language-toggle-btn:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.language-toggle-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.current-lang {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.toggle-icon {
+  font-size: 16px;
+  opacity: 0.8;
+  transition: transform 0.3s ease;
+}
+
+.language-toggle-btn:hover .toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .language-toggle-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-width: 50px;
+  }
+  
+  .current-lang {
+    font-size: 12px;
+  }
+  
+  .toggle-icon {
+    font-size: 14px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .language-toggle-btn {
+    background: linear-gradient(135deg, #4c63d2 0%, #5a4b8c 100%);
+    box-shadow: 0 2px 8px rgba(76, 99, 210, 0.3);
+  }
+  
+  .language-toggle-btn:hover {
+    background: linear-gradient(135deg, #4356c0 0%, #4e4278 100%);
+    box-shadow: 0 4px 12px rgba(76, 99, 210, 0.4);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .language-toggle-btn {
+    background: #000;
+    color: #fff;
+    border: 2px solid #fff;
+  }
+  
+  .language-toggle-btn:hover {
+    background: #333;
+  }
+}

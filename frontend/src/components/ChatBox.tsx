@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import WebSocketService from '../services/websocket';
 import UserSelector from './UserSelector';
 import RecommendationBubbles from './RecommendationBubbles';
 import SessionManagerComponent from './SessionManager';
+import LanguageToggle from './LanguageToggle';
 import { getUserById } from '../data/users';
 import { SessionManager } from '../services/sessionManager';
 import { WEBSOCKET_URL, HTTP_API_URL } from '../config/api';
@@ -25,6 +27,7 @@ interface ChatBoxProps {
 }
 
 const ChatBox = ({ onViewChange }: ChatBoxProps) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('15'); // Default to first user
@@ -371,23 +374,26 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
       <div className="chat-container">
         <div className="chat-header">
           <div className="header-top">
-            <h1>🛍️ AI Shopping Assistant</h1>
-            <div className="header-navigation">
-              <button
-                className="nav-btn active"
-                onClick={() => onViewChange('chat')}
-              >
-                💬 Chat
-              </button>
-              <button
-                className="nav-btn"
-                onClick={() => onViewChange('monitoring')}
-              >
-                🔧 Monitoring
-              </button>
+            <h1>🛍️ {t('chat.title')}</h1>
+            <div className="header-controls">
+              <LanguageToggle />
+              <div className="header-navigation">
+                <button
+                  className="nav-btn active"
+                  onClick={() => onViewChange('chat')}
+                >
+                  💬 {t('navigation.chat')}
+                </button>
+                <button
+                  className="nav-btn"
+                  onClick={() => onViewChange('monitoring')}
+                >
+                  🔧 {t('navigation.monitoring')}
+                </button>
+              </div>
             </div>
           </div>
-          <p>Your personal shopping companion powered by AI</p>
+          <p>{t('chat.subtitle')}</p>
           <div className="session-section">
             <SessionManagerComponent
               currentSessionId={currentSessionId}
@@ -399,7 +405,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
         </div>
         
         <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'} ${useAgent ? 'agent-mode' : ''}`}>
-          {isConnected ? (useAgent ? '🤖 Agent Mode - Connected' : '🟢 Connected') : '🔴 Disconnected'}
+          {isConnected ? (useAgent ? `🤖 ${t('chat.agent.enabled')}` : `🟢 ${t('chat.connectionStatus.connected')}`) : `🔴 ${t('chat.connectionStatus.disconnected')}`}
         </div>
         
         <div className="chat-messages">
@@ -456,7 +462,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
                   <span className="toggle-slider"></span>
                 </label>
                 <span className="toggle-label">
-                  {isInitializing ? '⏳ Loading...' : (useAgent ? '🤖 Agent Mode' : '💬 Chat Mode')}
+                  {isInitializing ? `⏳ ${t('common.loading')}` : (useAgent ? `🤖 ${t('chat.agent.enabled')}` : `💬 ${t('chat.agent.disabled')}`)}
                   {conversationStarted && !isInitializing && <span className="disabled-note"> (locked)</span>}
                 </span>
               </div>
@@ -470,7 +476,7 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
                   <span className="toggle-slider"></span>
                 </label>
                 <span className="toggle-label">
-                  {showSuggestions ? '💡 Suggestions On' : '💡 Suggestions Off'}
+                  {showSuggestions ? `💡 ${t('chat.suggestions.enabled')}` : `💡 ${t('chat.suggestions.disabled')}`}
                 </span>
               </div>
             </div>
@@ -480,14 +486,14 @@ const ChatBox = ({ onViewChange }: ChatBoxProps) => {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                placeholder={useAgent ? "Ask the agent to help with complex tasks..." : "Ask me about products, orders, or anything else..."}
+                placeholder={t('chat.placeholder')}
                 disabled={!isConnected || !selectedUserId}
               />
               <button 
                 onClick={sendMessage}
                 disabled={!isConnected || !selectedUserId || !inputMessage.trim()}
               >
-                Send 🚀
+                {t('common.send')} 🚀
               </button>
             </div>
           </div>

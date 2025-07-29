@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import RecommendationsService from '../services/recommendations';
 import type { User } from '../data/users';
 import './RecommendationBubbles.css';
@@ -11,6 +12,7 @@ interface RecommendationBubblesProps {
 }
 
 const RecommendationBubbles = ({ user, onRecommendationClick, isVisible, sessionId }: RecommendationBubblesProps) => {
+  const { t } = useTranslation();
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
@@ -146,7 +148,7 @@ const RecommendationBubbles = ({ user, onRecommendationClick, isVisible, session
     <div className={`recommendation-bubbles ${isAnimating ? 'slide-in' : ''}`}>
       <div className="bubbles-header">
         <div className="bubbles-title-row">
-          <span className="bubbles-title">💡 Try asking:</span>
+          <span className="bubbles-title">💡 {t('chat.recommendations.title')}:</span>
           <div className="refresh-section">
             {lastRefreshTime && (
               <span className="refresh-indicator">
@@ -157,7 +159,7 @@ const RecommendationBubbles = ({ user, onRecommendationClick, isVisible, session
               className="refresh-button"
               onClick={handleRefreshRecommendations}
               disabled={loading}
-              title="Get new recommendations"
+              title={t('monitoring.refresh')}
             >
               {loading ? (
                 <span className="refresh-spinner">⟳</span>
